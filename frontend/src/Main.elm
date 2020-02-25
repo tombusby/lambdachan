@@ -3,6 +3,7 @@ module Main exposing (main)
 import Browser
 import Element exposing (..)
 import Element.Background as Background
+import Element.Border as Border
 import Element.Font as Font
 import Html exposing (Html)
 
@@ -50,6 +51,9 @@ commentBox =
         , spacing 10
         , padding 20
         , Background.color <| rgb255 240 224 214
+        , Border.color <| rgb255 217 191 183
+        , Border.solid
+        , Border.width 1
         ]
         [ row [ spacing 5 ]
             [ el [ Font.color <| rgb255 17 119 67, Font.heavy ] <| text "Anonymous"
