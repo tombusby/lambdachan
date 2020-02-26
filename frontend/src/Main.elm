@@ -53,10 +53,7 @@ commentBox commentText murl =
             , Font.size 14
             , spacing 10
             , padding 20
-            , width
-                (shrink
-                    |> maximum 900
-                )
+            , width shrink
             , Background.color Palette.commentBoxBG
             , Border.color Palette.commentBoxBorder
             , Border.solid

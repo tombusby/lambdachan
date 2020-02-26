@@ -7,6 +7,8 @@
 elm-stuff
 # elm-repl generated files
 repl-temp-*
+# Don't store the generated index.html
+index.html
 
 ### Haskell ###
 dist
