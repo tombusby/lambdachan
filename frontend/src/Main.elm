@@ -6,6 +6,7 @@ import Element.Background as Background
 import Element.Border as Border
 import Element.Font as Font
 import Html exposing (Html)
+import Palette
 
 
 main : Program () Model Msg
@@ -40,44 +41,51 @@ header =
             }
         , el [ centerX ] <|
             text "λchan - FP Imageboard"
+        , el [ paddingXY 0 10 ] none
         ]
 
 
-commentBox : Element Msg
-commentBox =
-    column
-        [ alignLeft
-        , Font.size 14
-        , spacing 10
-        , padding 20
-        , Background.color <| rgb255 240 224 214
-        , Border.color <| rgb255 217 191 183
-        , Border.solid
-        , Border.width 1
-        ]
-        [ row [ spacing 5 ]
-            [ el [ Font.color <| rgb255 17 119 67, Font.heavy ] <| text "Anonymous"
-            , text "(ID: 2423424)"
-            , text "25/02/20(Tue)20:34:37 No.1234567890"
-            , el [ Font.color <| rgb255 0 0 238 ] <| text "▶"
-            , row [ Font.color <| rgb255 0 0 238, Font.underline ]
-                [ link []
-                    { url = "#"
-                    , label = text ">>34234324"
-                    }
-                ]
+commentBox : String -> Element Msg
+commentBox commentText =
+    el [ paddingXY 0 5 ] <|
+        column
+            [ alignLeft
+            , Font.size 14
+            , spacing 10
+            , padding 20
+            , width
+                (shrink
+                    |> maximum 900
+                )
+            , Background.color Palette.commentBoxBG
+            , Border.color Palette.commentBoxBorder
+            , Border.solid
+            , Border.width 1
             ]
-        , row
-            [ spacing 10 ]
-            [ text "blah blah shitpost" ]
-        ]
+            [ row [ spacing 5 ]
+                [ el [ Font.color Palette.green, Font.heavy ] <|
+                    text "Anonymous"
+                , text "(ID: 2423424)"
+                , text "25/02/20(Tue)20:34:37 No.1234567890"
+                , el [ Font.color Palette.blue ] <| text "▶"
+                , row [ Font.color Palette.blue, Font.underline ]
+                    [ link []
+                        { url = "#"
+                        , label = text ">>34234324"
+                        }
+                    ]
+                ]
+            , row
+                [ paddingXY 0 10 ]
+                [ paragraph [] [ text commentText ] ]
+            ]
 
 
 view : Model -> Html Msg
 view _ =
     layout
-        [ Background.color <| rgb255 255 255 238
-        , Font.color <| Element.rgb255 180 0 0
+        [ Background.color Palette.beige
+        , Font.color Palette.maroon
         , Font.family
             [ Font.typeface "Tahoma"
             , Font.sansSerif
@@ -87,6 +95,6 @@ view _ =
     <|
         column [ centerX, width fill ]
             [ header
-            , row [ padding 10 ] []
-            , commentBox
+            , commentBox "blah blah shitpost"
+            , commentBox "blah blah shitpost dfgdfgdfgfdsgdsg blah blah shitpost dfgdfgdfgfdsgdsg blah blah shitpost dfgdfgdfgfdsgdsg blah blah shitpost dfgdfgdfgfdsgdsg blah blah shitpost dfgdfgdfgfdsgdsg blah blah shitpost dfgdfgdfgfdsgdsg blah blah shitpost dfgdfgdfgfdsgdsg blah blah shitpost dfgdfgdfgfdsgdsg blah blah shitpost dfgdfgdfgfdsgdsg "
             ]
