@@ -45,8 +45,8 @@ header =
         ]
 
 
-commentBox : String -> Element Msg
-commentBox commentText =
+commentBox : String -> Maybe String -> Element Msg
+commentBox commentText murl =
     el [ paddingXY 0 5 ] <|
         column
             [ alignLeft
@@ -77,8 +77,43 @@ commentBox commentText =
                 ]
             , row
                 [ paddingXY 0 10 ]
-                [ paragraph [] [ text commentText ] ]
+                [ paragraph []
+                    [ case murl of
+                        Nothing ->
+                            none
+
+                        Just url ->
+                            image
+                                [ alignLeft
+                                , width (fill |> maximum 150)
+                                , padding 5
+                                ]
+                                { src = url
+                                , description = "banner"
+                                }
+                    , text commentText
+                    ]
+                ]
             ]
+
+
+veryLongMessage : String
+veryLongMessage =
+    """
+    blah blah shitpost dfgdfgdfgfdsgdsg blah blah shitpost dfgdfgdfgfdsgdsg
+    blah blah shitpost dfgdfgdfgfdsgdsg blah blah shitpost dfgdfgdfgfdsgdsg
+    blah blah shitpost dfgdfgdfgfdsgdsg blah blah shitpost dfgdfgdfgfdsgdsg
+    blah blah shitpost dfgdfgdfgfdsgdsg blah blah shitpost dfgdfgdfgfdsgdsg
+    blah blah shitpost dfgdfgdfgfdsgdsg sdfdsfd dsfgsdfgsdfgsdfgsfd
+    dsfgdsfgsdfgsfdg dsfgdfsgsdfgsdg dfgdgfdsgsdgfdsg dfgdfggsdgsdgfsdgsdgdsgsdf
+    dfgdgsdgsdgfdsfgsdfgsdfgsdfgsfd dsfgdsfgsdfgsfdg dsfgdfsgsdfgsdg dfgdgfdsgs
+    dgfdsg dfgdfggsdgsdgfsdgsdgdsgsdfg dfgdgsdgsdgfdsfgsdfgsdfgsdfgsfd dsfgdsfgs
+    dfgsfdg dsfgdfsgsdfgsdg dfgdgfdsgsdgfdsg dfgdfggsdgsdgfsdgsdgdsgsdfg dfgdgsd
+    gsdgfdsfgsdfgsdfgsdfgsfd dsfgdsfgsdfgsfdg dsfgdfsgsdfgsdg dfgdgfdsgsdgfdsg
+    dfgdfggsdgsdgfsdgsdgdsgsdfg dfgdgsdgsdgfdsfgsdfgsdfgsdfgsfd dsfgdsfgsdfgsfdg
+    dsfgdfsgsdfgsdg dfgdgfdsgsdgfdsg dfgdfggsdgsdgfsdgsdgdsgsdfg
+    dfgdgsdgsdgfdsfgsdfgsdfgsdfgsfd dsfgdsfgsdfgsfdg dsfgdfsgsdfgsdg
+    dfgdgfdsgsdgfdsg dfgdfggsdgsdgfsdgsdgdsgsdfg dfgdgsdgsdgf"""
 
 
 view : Model -> Html Msg
@@ -95,6 +130,6 @@ view _ =
     <|
         column [ centerX, width fill ]
             [ header
-            , commentBox "blah blah shitpost"
-            , commentBox "blah blah shitpost dfgdfgdfgfdsgdsg blah blah shitpost dfgdfgdfgfdsgdsg blah blah shitpost dfgdfgdfgfdsgdsg blah blah shitpost dfgdfgdfgfdsgdsg blah blah shitpost dfgdfgdfgfdsgdsg blah blah shitpost dfgdfgdfgfdsgdsg blah blah shitpost dfgdfgdfgfdsgdsg blah blah shitpost dfgdfgdfgfdsgdsg blah blah shitpost dfgdfgdfgfdsgdsg "
+            , commentBox "blah blah shitpost" Nothing
+            , commentBox veryLongMessage <| Just "assets/img/banner.png"
             ]
