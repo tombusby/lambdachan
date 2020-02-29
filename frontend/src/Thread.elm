@@ -11,6 +11,7 @@ import Element.Border as Border
 import Element.Font as Font
 import Palette
 import Time
+import Time.Format as TimeFormat
 
 
 type alias Post a =
@@ -44,46 +45,13 @@ renderThread timezone thread =
             ++ List.map (renderCommentBox timezone) thread.replies
 
 
-weekdayToString : Time.Weekday -> String
-weekdayToString weekday =
-    case weekday of
-        Time.Mon ->
-            "Mon"
-
-        Time.Tue ->
-            "Tue"
-
-        Time.Wed ->
-            "Wed"
-
-        Time.Thu ->
-            "Thu"
-
-        Time.Fri ->
-            "Fri"
-
-        Time.Sat ->
-            "Sat"
-
-        Time.Sun ->
-            "Sun"
-
-
 renderPostTime : Time.Zone -> Post a -> Element msg
 renderPostTime timezone { time } =
     let
-        zeroPadString f =
-            String.pad 2 '0' << String.fromInt << f timezone
-
-        weekday =
-            weekdayToString <| Time.toWeekday timezone time
-
-        timeString =
-            String.join ":" <|
-                List.map (\f -> zeroPadString f time)
-                    [ Time.toHour, Time.toMinute, Time.toSecond ]
+        formatString =
+            "padDay/Month/Year(Weekday)padHour:padMinute:padSecond"
     in
-    text <| "(" ++ weekday ++ ")" ++ timeString
+    text << TimeFormat.format timezone formatString <| Time.posixToMillis time
 
 
 renderInfoText : Time.Zone -> Maybe String -> Post a -> Element msg
@@ -101,6 +69,7 @@ renderInfoText timezone mtitle post =
                 text "Anonymous"
             , text "(ID: 2423424)"
             , renderPostTime timezone post
+            , text <| "No:" ++ String.fromInt post.id
             , el [ Font.color Palette.links ] <| text "▶"
             , link [ Font.color Palette.links, Font.underline ]
                 { url = "#"
