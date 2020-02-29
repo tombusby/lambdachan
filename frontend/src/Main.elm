@@ -6,30 +6,46 @@ import Element.Background as Background
 import Element.Font as Font
 import Html exposing (Html)
 import Palette
+import Task
 import Thread
+import Time
 
 
 main : Program () Model Msg
 main =
-    Browser.sandbox { init = init, update = update, view = view }
+    Browser.element
+        { init = init
+        , update = update
+        , view = view
+        , subscriptions = subscriptions
+        }
 
 
 type alias Model =
-    ()
+    { timezone : Time.Zone }
 
 
-init : Model
-init =
-    ()
+init : () -> ( Model, Cmd Msg )
+init _ =
+    ( { timezone = Time.utc }
+    , Task.perform SetTimezone Time.here
+    )
 
 
-type alias Msg =
-    ()
+type Msg
+    = SetTimezone Time.Zone
 
 
-update : Msg -> Model -> Model
-update _ _ =
-    ()
+update : Msg -> Model -> ( Model, Cmd Msg )
+update msg model =
+    case msg of
+        SetTimezone zone ->
+            ( { model | timezone = zone }, Cmd.none )
+
+
+subscriptions : Model -> Sub Msg
+subscriptions _ =
+    Sub.none
 
 
 header : Element Msg
