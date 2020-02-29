@@ -1,7 +1,5 @@
 module Thread exposing
-    ( Comment
-    , Thread
-    , examples
+    ( examples
     , renderThread
     )
 
