@@ -49,8 +49,8 @@ header =
 view : Model -> Html Msg
 view _ =
     layout
-        [ Background.color Palette.beige
-        , Font.color Palette.maroon
+        [ Background.color Palette.background
+        , Font.color Palette.text
         , Font.family
             [ Font.typeface "Tahoma"
             , Font.sansSerif
@@ -59,5 +59,6 @@ view _ =
         ]
     <|
         column [ centerX, width fill ] <|
-            List.singleton header
-                ++ Thread.renderThread Thread.examples
+            [ header
+            , Thread.renderThread Thread.examples
+            ]

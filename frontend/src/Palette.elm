@@ -1,32 +1,38 @@
 module Palette exposing
-    ( beige
-    , blue
+    ( author
+    , background
     , commentBoxBG
     , commentBoxBorder
-    , green
-    , maroon
+    , links
+    , text
+    , threadTitle
     )
 
 import Element exposing (Color, rgb255)
 
 
-maroon : Color
-maroon =
+text : Color
+text =
     rgb255 180 0 0
 
 
-blue : Color
-blue =
-    rgb255 0 0 238
+threadTitle : Color
+threadTitle =
+    rgb255 204 17 5
 
 
-green : Color
-green =
+author : Color
+author =
     rgb255 17 119 67
 
 
-beige : Color
-beige =
+links : Color
+links =
+    rgb255 0 0 238
+
+
+background : Color
+background =
     rgb255 255 255 238
 
 

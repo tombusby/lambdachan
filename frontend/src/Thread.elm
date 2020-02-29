@@ -2,7 +2,6 @@ module Thread exposing
     ( Comment
     , Thread
     , examples
-    , renderCommentBox
     , renderThread
     )
 
@@ -16,6 +15,7 @@ import Palette
 type alias Thread =
     { picURL : String
     , id : Int
+    , threadTitle : String
     , commentText : String
     , replies : List Comment
     }
@@ -27,9 +27,54 @@ type alias Comment =
     }
 
 
-renderThread : Thread -> List (Element msg)
+renderThread : Thread -> Element msg
 renderThread thread =
-    List.map renderCommentBox thread.replies
+    column [ Font.size 14 ] <|
+        [ renderOP thread
+        , el [ paddingXY 0 5 ] none
+        ]
+            ++ List.map renderCommentBox thread.replies
+
+
+renderInfoText : Maybe String -> Element msg
+renderInfoText mtitle =
+    column []
+        [ row [ spacing 5, width fill ]
+            [ case mtitle of
+                Nothing ->
+                    none
+
+                Just title ->
+                    el [ Font.color Palette.threadTitle, Font.heavy ] <|
+                        text title
+            , el [ Font.color Palette.author, Font.heavy ] <|
+                text "Anonymous"
+            , text "(ID: 2423424)"
+            , text "25/02/20(Tue)20:34:37 No.1234567890"
+            , el [ Font.color Palette.links ] <| text "▶"
+            , link [ Font.color Palette.links, Font.underline ]
+                { url = "#"
+                , label = text ">>34234324"
+                }
+            ]
+        , row [ paddingXY 0 5 ] []
+        ]
+
+
+renderOP : Thread -> Element msg
+renderOP { picURL, threadTitle, commentText } =
+    paragraph []
+        [ image
+            [ alignLeft
+            , width (fill |> maximum 200)
+            , padding 5
+            ]
+            { src = picURL
+            , description = "OP image"
+            }
+        , renderInfoText <| Just threadTitle
+        , paragraph [] [ text commentText ]
+        ]
 
 
 renderCommentBox : Comment -> Element msg
@@ -37,7 +82,6 @@ renderCommentBox { mpicURL, commentText } =
     el [ paddingXY 0 5 ] <|
         column
             [ alignLeft
-            , Font.size 14
             , spacing 10
             , padding 20
             , width shrink
@@ -46,20 +90,7 @@ renderCommentBox { mpicURL, commentText } =
             , Border.solid
             , Border.width 1
             ]
-            [ row [ spacing 5 ]
-                [ el [ Font.color Palette.green, Font.heavy ] <|
-                    text "Anonymous"
-                , text "(ID: 2423424)"
-                , text "25/02/20(Tue)20:34:37 No.1234567890"
-                , el [ Font.color Palette.blue ] <| text "▶"
-                , row [ Font.color Palette.blue, Font.underline ]
-                    [ link []
-                        { url = "#"
-                        , label = text ">>34234324"
-                        }
-                    ]
-                ]
-            , row
+            [ row
                 [ paddingXY 0 10 ]
                 [ paragraph []
                     [ case mpicURL of
@@ -73,25 +104,18 @@ renderCommentBox { mpicURL, commentText } =
                                 , padding 5
                                 ]
                                 { src = url
-                                , description = "banner"
+                                , description = "thread image"
                                 }
-                    , text commentText
+                    , renderInfoText Nothing
+                    , paragraph [] [ text commentText ]
                     ]
                 ]
             ]
 
 
-examples : Thread
-examples =
-    { picURL = "assets/img/banner.png"
-    , commentText = "This is the OP"
-    , id = 12343245
-    , replies =
-        [ { mpicURL = Nothing
-          , commentText = "blah blah shitpost"
-          }
-        , { mpicURL = Just "assets/img/banner.png"
-          , commentText = """
+veryLongCommentText : String
+veryLongCommentText =
+    """
     blah blah shitpost dfgdfgdfgfdsgdsg blah blah shitpost dfgdfgdfgfdsgdsg
     blah blah shitpost dfgdfgdfgfdsgdsg blah blah shitpost dfgdfgdfgfdsgdsg
     blah blah shitpost dfgdfgdfgfdsgdsg blah blah shitpost dfgdfgdfgfdsgdsg
@@ -106,6 +130,20 @@ examples =
     dsfgdfsgsdfgsdg dfgdgfdsgsdgfdsg dfgdfggsdgsdgfsdgsdgdsgsdfg
     dfgdgsdgsdgfdsfgsdfgsdfgsdfgsfd dsfgdsfgsdfgsfdg dsfgdfsgsdfgsdg
     dfgdgfdsgsdgfdsg dfgdfggsdgsdgfsdgsdgdsgsdfg dfgdgsdgsdgf"""
+
+
+examples : Thread
+examples =
+    { picURL = "assets/img/banner.png"
+    , id = 12343245
+    , threadTitle = "Aw shit it's the coronavirus"
+    , commentText = veryLongCommentText ++ veryLongCommentText
+    , replies =
+        [ { mpicURL = Nothing
+          , commentText = "blah blah shitpost"
+          }
+        , { mpicURL = Just "assets/img/banner.png"
+          , commentText = veryLongCommentText
           }
         ]
     }
