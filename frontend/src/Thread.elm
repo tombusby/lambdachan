@@ -29,7 +29,7 @@ type alias Comment =
 
 renderThread : Thread -> Element msg
 renderThread thread =
-    column [ Font.size 14 ] <|
+    column [ Font.size 14, spacing 10 ] <|
         [ renderOP thread
         , el [ paddingXY 0 5 ] none
         ]
@@ -79,38 +79,34 @@ renderOP { picURL, threadTitle, commentText } =
 
 renderCommentBox : Comment -> Element msg
 renderCommentBox { mpicURL, commentText } =
-    el [ paddingXY 0 5 ] <|
-        column
-            [ alignLeft
-            , spacing 10
-            , padding 20
-            , width shrink
-            , Background.color Palette.commentBoxBG
-            , Border.color Palette.commentBoxBorder
-            , Border.solid
-            , Border.width 1
-            ]
-            [ row
-                [ paddingXY 0 10 ]
-                [ paragraph []
-                    [ case mpicURL of
-                        Nothing ->
-                            none
+    row
+        [ alignLeft
+        , spacing 10
+        , padding 20
+        , width shrink
+        , Background.color Palette.commentBoxBG
+        , Border.color Palette.commentBoxBorder
+        , Border.solid
+        , Border.width 1
+        ]
+        [ paragraph []
+            [ case mpicURL of
+                Nothing ->
+                    none
 
-                        Just url ->
-                            image
-                                [ alignLeft
-                                , width (fill |> maximum 150)
-                                , padding 5
-                                ]
-                                { src = url
-                                , description = "thread image"
-                                }
-                    , renderInfoText Nothing
-                    , paragraph [] [ text commentText ]
-                    ]
-                ]
+                Just url ->
+                    image
+                        [ alignLeft
+                        , width (fill |> maximum 150)
+                        , padding 5
+                        ]
+                        { src = url
+                        , description = "thread image"
+                        }
+            , renderInfoText Nothing
+            , paragraph [] [ text commentText ]
             ]
+        ]
 
 
 veryLongCommentText : String
@@ -144,6 +140,9 @@ examples =
           }
         , { mpicURL = Just "assets/img/banner.png"
           , commentText = veryLongCommentText
+          }
+        , { mpicURL = Just "assets/img/banner.png"
+          , commentText = "blah blah shitpost"
           }
         ]
     }
