@@ -70,6 +70,8 @@ renderInfoText timezone mtitle post =
             , renderPostTime timezone post
             , text <| "No:" ++ String.fromInt post.id
             , el [ Font.color Palette.links ] <| text "▶"
+
+            -- TODO: Wire this so that isn't a placeholder
             , link [ Font.color Palette.links, Font.underline ]
                 { url = "#"
                 , label = text ">>34234324"
