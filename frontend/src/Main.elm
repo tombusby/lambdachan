@@ -62,7 +62,7 @@ header =
 
 
 view : Model -> Html Msg
-view _ =
+view model =
     layout
         [ Background.color Palette.background
         , Font.color Palette.text
@@ -75,5 +75,5 @@ view _ =
     <|
         column [ centerX, width fill ] <|
             [ header
-            , Thread.renderThread Thread.examples
+            , Thread.renderThread model.timezone Thread.examples
             ]

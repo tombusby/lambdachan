@@ -10,34 +10,42 @@ import Element.Background as Background
 import Element.Border as Border
 import Element.Font as Font
 import Palette
+import Time
+
+
+type alias Post a =
+    { a
+        | id : Int
+        , time : Time.Posix
+        , commentText : String
+    }
 
 
 type alias Thread =
-    { picURL : String
-    , id : Int
-    , threadTitle : String
-    , commentText : String
-    , replies : List Comment
-    }
+    Post
+        { picURL : String
+        , threadTitle : String
+        , replies : List Comment
+        }
 
 
 type alias Comment =
-    { mpicURL : Maybe String
-    , commentText : String
-    }
+    Post
+        { mpicURL : Maybe String
+        }
 
 
-renderThread : Thread -> Element msg
-renderThread thread =
+renderThread : Time.Zone -> Thread -> Element msg
+renderThread timezone thread =
     column [ Font.size 14, spacing 10 ] <|
-        [ renderOP thread
+        [ renderOP timezone thread
         , el [ paddingXY 0 5 ] none
         ]
-            ++ List.map renderCommentBox thread.replies
+            ++ List.map (renderCommentBox timezone) thread.replies
 
 
-renderInfoText : Maybe String -> Element msg
-renderInfoText mtitle =
+renderInfoText : Time.Zone -> Maybe String -> Post a -> Element msg
+renderInfoText timezone mtitle _ =
     column []
         [ row [ spacing 5, width fill ]
             [ case mtitle of
@@ -61,8 +69,8 @@ renderInfoText mtitle =
         ]
 
 
-renderOP : Thread -> Element msg
-renderOP { picURL, threadTitle, commentText } =
+renderOP : Time.Zone -> Thread -> Element msg
+renderOP timezone ({ picURL, threadTitle, commentText } as op) =
     paragraph []
         [ image
             [ alignLeft
@@ -72,13 +80,13 @@ renderOP { picURL, threadTitle, commentText } =
             { src = picURL
             , description = "OP image"
             }
-        , renderInfoText <| Just threadTitle
+        , renderInfoText timezone (Just threadTitle) op
         , paragraph [] [ text commentText ]
         ]
 
 
-renderCommentBox : Comment -> Element msg
-renderCommentBox { mpicURL, commentText } =
+renderCommentBox : Time.Zone -> Comment -> Element msg
+renderCommentBox timezone ({ mpicURL, commentText } as reply) =
     row
         [ alignLeft
         , spacing 10
@@ -103,7 +111,7 @@ renderCommentBox { mpicURL, commentText } =
                         { src = url
                         , description = "thread image"
                         }
-            , renderInfoText Nothing
+            , renderInfoText timezone Nothing reply
             , paragraph [] [ text commentText ]
             ]
         ]
@@ -130,18 +138,25 @@ veryLongCommentText =
 
 examples : Thread
 examples =
-    { picURL = "assets/img/banner.png"
-    , id = 12343245
+    { id = 672465
+    , time = Time.millisToPosix 1579547696000
+    , picURL = "assets/img/banner.png"
     , threadTitle = "Aw shit it's the coronavirus"
     , commentText = veryLongCommentText ++ veryLongCommentText
     , replies =
-        [ { mpicURL = Nothing
+        [ { id = 532453
+          , time = Time.millisToPosix 1580465003000
+          , mpicURL = Nothing
           , commentText = "blah blah shitpost"
           }
-        , { mpicURL = Just "assets/img/banner.png"
+        , { id = 345234
+          , time = Time.millisToPosix 1581631692000
+          , mpicURL = Just "assets/img/banner.png"
           , commentText = veryLongCommentText
           }
-        , { mpicURL = Just "assets/img/banner.png"
+        , { id = 234523
+          , time = Time.millisToPosix 1582901165000
+          , mpicURL = Just "assets/img/banner.png"
           , commentText = "blah blah shitpost"
           }
         ]
