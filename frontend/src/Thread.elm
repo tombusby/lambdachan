@@ -1,5 +1,7 @@
 module Thread exposing
-    ( examples
+    ( decodeComment
+    , decodeThread
+    , examples
     , renderThread
     )
 
@@ -7,6 +9,16 @@ import Element exposing (..)
 import Element.Background as Background
 import Element.Border as Border
 import Element.Font as Font
+import Json.Decode as Decode
+    exposing
+        ( Decoder
+        , field
+        , float
+        , int
+        , list
+        , nullable
+        , string
+        )
 import Palette
 import Time
 import Time.Format as TimeFormat
@@ -125,6 +137,44 @@ renderCommentBox timezone ({ mpicURL, commentText } as reply) =
             , paragraph [] [ text commentText ]
             ]
         ]
+
+
+decodeThread : Decoder Thread
+decodeThread =
+    let
+        helper id time commentText picURL threadTitle replies =
+            { id = id
+            , time = time
+            , commentText = commentText
+            , picURL = picURL
+            , threadTitle = threadTitle
+            , replies = replies
+            }
+    in
+    Decode.map6 helper
+        (field "id" int)
+        (Decode.map Time.millisToPosix <| field "time" int)
+        (field "commentText" string)
+        (field "picURL" string)
+        (field "threadTitle" string)
+        (list decodeComment)
+
+
+decodeComment : Decoder Comment
+decodeComment =
+    let
+        helper id time commentText mpicURL =
+            { id = id
+            , time = time
+            , commentText = commentText
+            , mpicURL = mpicURL
+            }
+    in
+    Decode.map4 helper
+        (field "id" int)
+        (Decode.map Time.millisToPosix <| field "time" int)
+        (field "commentText" string)
+        (nullable <| field "mpicURL" string)
 
 
 veryLongCommentText : String
