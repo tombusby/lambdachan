@@ -67,7 +67,6 @@ renderInfoText timezone mtitle post =
                         text title
             , el [ Font.color Palette.author, Font.heavy ] <|
                 text "Anonymous"
-            , text "(ID: 2423424)"
             , renderPostTime timezone post
             , text <| "No:" ++ String.fromInt post.id
             , el [ Font.color Palette.links ] <| text "▶"
