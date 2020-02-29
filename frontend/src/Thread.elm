@@ -44,8 +44,50 @@ renderThread timezone thread =
             ++ List.map (renderCommentBox timezone) thread.replies
 
 
+weekdayToString : Time.Weekday -> String
+weekdayToString weekday =
+    case weekday of
+        Time.Mon ->
+            "Mon"
+
+        Time.Tue ->
+            "Tue"
+
+        Time.Wed ->
+            "Wed"
+
+        Time.Thu ->
+            "Thu"
+
+        Time.Fri ->
+            "Fri"
+
+        Time.Sat ->
+            "Sat"
+
+        Time.Sun ->
+            "Sun"
+
+
+renderPostTime : Time.Zone -> Post a -> Element msg
+renderPostTime timezone { time } =
+    let
+        zeroPadString f =
+            String.pad 2 '0' << String.fromInt << f timezone
+
+        weekday =
+            weekdayToString <| Time.toWeekday timezone time
+
+        timeString =
+            String.join ":" <|
+                List.map (\f -> zeroPadString f time)
+                    [ Time.toHour, Time.toMinute, Time.toSecond ]
+    in
+    text <| "(" ++ weekday ++ ")" ++ timeString
+
+
 renderInfoText : Time.Zone -> Maybe String -> Post a -> Element msg
-renderInfoText timezone mtitle _ =
+renderInfoText timezone mtitle post =
     column []
         [ row [ spacing 5, width fill ]
             [ case mtitle of
@@ -58,7 +100,7 @@ renderInfoText timezone mtitle _ =
             , el [ Font.color Palette.author, Font.heavy ] <|
                 text "Anonymous"
             , text "(ID: 2423424)"
-            , text "25/02/20(Tue)20:34:37 No.1234567890"
+            , renderPostTime timezone post
             , el [ Font.color Palette.links ] <| text "▶"
             , link [ Font.color Palette.links, Font.underline ]
                 { url = "#"
