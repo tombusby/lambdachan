@@ -1,5 +1,7 @@
 module Thread exposing
-    ( Thread
+    ( Comment
+    , Post
+    , Thread
     , commentDecoder
     , renderThread
     , threadDecoder
