@@ -1,8 +1,8 @@
 module Thread exposing
-    ( decodeComment
-    , decodeThread
-    , examples
+    ( Thread
+    , commentDecoder
     , renderThread
+    , threadDecoder
     )
 
 import Element exposing (..)
@@ -13,7 +13,6 @@ import Json.Decode as Decode
     exposing
         ( Decoder
         , field
-        , float
         , int
         , list
         , nullable
@@ -139,8 +138,8 @@ renderCommentBox timezone ({ mpicURL, commentText } as reply) =
         ]
 
 
-decodeThread : Decoder Thread
-decodeThread =
+threadDecoder : Decoder Thread
+threadDecoder =
     let
         helper id time commentText picURL threadTitle replies =
             { id = id
@@ -157,11 +156,11 @@ decodeThread =
         (field "commentText" string)
         (field "picURL" string)
         (field "threadTitle" string)
-        (list decodeComment)
+        (field "replies" <| list commentDecoder)
 
 
-decodeComment : Decoder Comment
-decodeComment =
+commentDecoder : Decoder Comment
+commentDecoder =
     let
         helper id time commentText mpicURL =
             { id = id
@@ -174,50 +173,4 @@ decodeComment =
         (field "id" int)
         (Decode.map Time.millisToPosix <| field "time" int)
         (field "commentText" string)
-        (nullable <| field "mpicURL" string)
-
-
-veryLongCommentText : String
-veryLongCommentText =
-    """
-    blah blah shitpost dfgdfgdfgfdsgdsg blah blah shitpost dfgdfgdfgfdsgdsg
-    blah blah shitpost dfgdfgdfgfdsgdsg blah blah shitpost dfgdfgdfgfdsgdsg
-    blah blah shitpost dfgdfgdfgfdsgdsg blah blah shitpost dfgdfgdfgfdsgdsg
-    blah blah shitpost dfgdfgdfgfdsgdsg blah blah shitpost dfgdfgdfgfdsgdsg
-    blah blah shitpost dfgdfgdfgfdsgdsg sdfdsfd dsfgsdfgsdfgsdfgsfd
-    dsfgdsfgsdfgsfdg dsfgdfsgsdfgsdg dfgdgfdsgsdgfdsg dfgdfggsdgsdgfsdgsdgdsgsdf
-    dfgdgsdgsdgfdsfgsdfgsdfgsdfgsfd dsfgdsfgsdfgsfdg dsfgdfsgsdfgsdg dfgdgfdsgs
-    dgfdsg dfgdfggsdgsdgfsdgsdgdsgsdfg dfgdgsdgsdgfdsfgsdfgsdfgsdfgsfd dsfgdsfgs
-    dfgsfdg dsfgdfsgsdfgsdg dfgdgfdsgsdgfdsg dfgdfggsdgsdgfsdgsdgdsgsdfg dfgdgsd
-    gsdgfdsfgsdfgsdfgsdfgsfd dsfgdsfgsdfgsfdg dsfgdfsgsdfgsdg dfgdgfdsgsdgfdsg
-    dfgdfggsdgsdgfsdgsdgdsgsdfg dfgdgsdgsdgfdsfgsdfgsdfgsdfgsfd dsfgdsfgsdfgsfdg
-    dsfgdfsgsdfgsdg dfgdgfdsgsdgfdsg dfgdfggsdgsdgfsdgsdgdsgsdfg
-    dfgdgsdgsdgfdsfgsdfgsdfgsdfgsfd dsfgdsfgsdfgsfdg dsfgdfsgsdfgsdg
-    dfgdgfdsgsdgfdsg dfgdfggsdgsdgfsdgsdgdsgsdfg dfgdgsdgsdgf"""
-
-
-examples : Thread
-examples =
-    { id = 672465
-    , time = Time.millisToPosix 1579547696000
-    , picURL = "assets/img/banner.png"
-    , threadTitle = "Aw shit it's the coronavirus"
-    , commentText = veryLongCommentText ++ veryLongCommentText
-    , replies =
-        [ { id = 532453
-          , time = Time.millisToPosix 1580465003000
-          , mpicURL = Nothing
-          , commentText = "blah blah shitpost"
-          }
-        , { id = 345234
-          , time = Time.millisToPosix 1581631692000
-          , mpicURL = Just "assets/img/banner.png"
-          , commentText = veryLongCommentText
-          }
-        , { id = 234523
-          , time = Time.millisToPosix 1582901165000
-          , mpicURL = Just "assets/img/banner.png"
-          , commentText = "blah blah shitpost"
-          }
-        ]
-    }
+        (field "mpicURL" <| nullable string)
