@@ -7,6 +7,7 @@ let
     base
     aeson
     mtl
+    servant-server
   ];
 
   ghc = haskellPackages.ghcWithPackages haskellDeps;
@@ -15,6 +16,7 @@ let
     ghc
     pkgs.gdb
     haskellPackages.cabal-install
+    haskellPackages.ghcid
   ];
 in
 pkgs.stdenv.mkDerivation {

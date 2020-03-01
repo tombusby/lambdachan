@@ -21,6 +21,8 @@ executable lambdachan
   -- other-modules:
   -- other-extensions:
   build-depends:       base >=4.12 && <4.13,
-                       aeson >=1.4 && <1.5
+                       aeson >=1.4 && <1.5,
+                       servant-server >= 0.17 && < 0.18,
+                       warp >=3.3 && <3.4
   hs-source-dirs:      backend/src
   default-language:    Haskell2010
