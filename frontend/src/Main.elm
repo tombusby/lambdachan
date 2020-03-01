@@ -60,13 +60,9 @@ update msg model =
             ( { model | timezone = zone }, Cmd.none )
 
         GotThread result ->
-            let
-                r =
-                    Debug.log "result" result
-            in
-            case r of
+            case result of
                 Ok thread ->
-                    ( { model | mthread = Just (Debug.log "thread" thread) }, Cmd.none )
+                    ( { model | mthread = Just thread }, Cmd.none )
 
                 Err _ ->
                     ( model, Cmd.none )
