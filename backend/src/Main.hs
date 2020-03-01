@@ -11,7 +11,7 @@ server :: Server API
 server = serveDirectoryWith settings
   where
     settings = (defaultWebAppSettings "frontend/") {
-        ssIndices = map unsafeToPiece ["index.html"]
+        ssIndices = [unsafeToPiece "index.html"]
       }
 
 app :: Application
