@@ -1,8 +1,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 import Servant
-import Servant.Server.StaticFiles
 import Network.Wai.Handler.Warp (run)
-import WaiAppStatic.Storage.Filesystem
+import WaiAppStatic.Storage.Filesystem (defaultWebAppSettings)
 import WaiAppStatic.Types (StaticSettings(..), unsafeToPiece)
 
 type API = Raw
