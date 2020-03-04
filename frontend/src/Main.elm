@@ -43,7 +43,7 @@ init _ =
 getThread : Cmd Msg
 getThread =
     Http.get
-        { url = "/assets/thread.json"
+        { url = "/api/v1/thread/123"
         , expect = Http.expectJson GotThread Thread.threadDecoder
         }
 
