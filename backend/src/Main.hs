@@ -51,7 +51,7 @@ type API = "api" :> "v1" :> "thread" :> Capture "threadId" Int :> Get '[JSON] Th
       :<|> Raw
 
 server :: Server API
-server = (\threadId -> return $ testThread threadId)
+server = return . testThread
     :<|> serveDirectoryWith staticFileSettings
   where
     staticFileSettings = (defaultWebAppSettings "frontend/") {
