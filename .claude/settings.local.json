@@ -1,0 +1,13 @@
+{
+  "permissions": {
+    "allow": [
+      "WebFetch(domain:raw.githubusercontent.com)",
+      "WebFetch(domain:hackage.haskell.org)",
+      "Bash(mkdir -p /Users/tombusby/Documents/projects/lambdachan/src/LambdaChan/Database)",
+      "Bash(mkdir -p /Users/tombusby/Documents/projects/lambdachan/src/LambdaChan/API)",
+      "Bash(mkdir -p /Users/tombusby/Documents/projects/lambdachan/test/LambdaChan)",
+      "Bash(stack build:*)",
+      "Bash(stack test:*)"
+    ]
+  }
+}

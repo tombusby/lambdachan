@@ -1,0 +1,126 @@
+cabal-version: 2.2
+
+-- This file has been generated from package.yaml by hpack version 0.38.1.
+--
+-- see: https://github.com/sol/hpack
+
+name:           lambdachan
+version:        0.1.0.0
+description:    A 4chan-style imageboard built with Servant and Persistent.
+homepage:       https://github.com/githubuser/lambdachan#readme
+bug-reports:    https://github.com/githubuser/lambdachan/issues
+author:         Author name here
+maintainer:     example@example.com
+copyright:      2026 Author name here
+license:        BSD-3-Clause
+license-file:   LICENSE
+build-type:     Simple
+extra-source-files:
+    README.md
+    CHANGELOG.md
+
+source-repository head
+  type: git
+  location: https://github.com/githubuser/lambdachan
+
+library
+  exposed-modules:
+      LambdaChan.API.Handlers
+      LambdaChan.API.Types
+      LambdaChan.App
+      LambdaChan.Auth
+      LambdaChan.Config
+      LambdaChan.Database.Queries
+      LambdaChan.Database.Schema
+      LambdaChan.Types
+      Lib
+  other-modules:
+      Paths_lambdachan
+  autogen-modules:
+      Paths_lambdachan
+  hs-source-dirs:
+      src
+  ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints
+  build-depends:
+      aeson >=2.0
+    , base >=4.7 && <5
+    , base64-bytestring
+    , bytestring
+    , containers
+    , cryptohash-sha256
+    , http-types
+    , monad-logger
+    , mtl
+    , password >=3.0
+    , persistent >=2.14
+    , persistent-postgresql >=2.13
+    , persistent-sqlite >=2.13
+    , persistent-template >=2.12
+    , resource-pool
+    , servant >=0.20
+    , servant-server >=0.20
+    , text
+    , time
+    , transformers
+    , uuid >=1.3
+    , wai
+    , warp
+  default-language: Haskell2010
+
+executable lambdachan-exe
+  main-is: Main.hs
+  other-modules:
+      Paths_lambdachan
+  autogen-modules:
+      Paths_lambdachan
+  hs-source-dirs:
+      app
+  ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints -threaded -rtsopts -with-rtsopts=-N
+  build-depends:
+      aeson >=2.0
+    , base >=4.7 && <5
+    , bytestring
+    , containers
+    , lambdachan
+    , mtl
+    , text
+    , time
+    , transformers
+  default-language: Haskell2010
+
+test-suite lambdachan-test
+  type: exitcode-stdio-1.0
+  main-is: Spec.hs
+  other-modules:
+      LambdaChan.APISpec
+      LambdaChan.AuthSpec
+      LambdaChan.DatabaseSpec
+      LambdaChan.TestHelpers
+      Paths_lambdachan
+  autogen-modules:
+      Paths_lambdachan
+  hs-source-dirs:
+      test
+  ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints -threaded -rtsopts -with-rtsopts=-N
+  build-depends:
+      QuickCheck
+    , aeson >=2.0
+    , base >=4.7 && <5
+    , bytestring
+    , containers
+    , hspec >=2.0
+    , hspec-wai >=0.11
+    , hspec-wai-json
+    , http-types
+    , lambdachan
+    , monad-logger
+    , mtl
+    , persistent
+    , persistent-sqlite
+    , text
+    , time
+    , transformers
+    , uuid
+    , wai
+    , wai-extra
+  default-language: Haskell2010
