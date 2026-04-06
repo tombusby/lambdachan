@@ -11,13 +11,15 @@
 {-# LANGUAGE StandaloneDeriving #-}
 {-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE TypeOperators #-}
 {-# LANGUAGE UndecidableInstances #-}
 {-# OPTIONS_GHC -Wno-missing-export-lists #-}
 
--- | Persistent database schema for lambdachan.
--- Template Haskell generates entity types (Board, BoardId, etc.),
--- field accessors (boardName, threadIsLocked, etc.), EntityField
--- constructors, Unique constructors, and the migrateAll migration.
+{- | Persistent database schema for lambdachan.
+Template Haskell generates entity types (Board, BoardId, etc.),
+field accessors (boardName, threadIsLocked, etc.), EntityField
+constructors, Unique constructors, and the migrateAll migration.
+-}
 module LambdaChan.Database.Schema where
 
 import Data.ByteString (ByteString)
@@ -27,11 +29,9 @@ import Database.Persist.TH
 
 import LambdaChan.Types (UserRole)
 
--- Derive PersistField for UserRole via show/read.
--- Stored as a text column ("AdminRole" | "ModeratorRole").
-derivePersistField "UserRole"
-
-share [mkPersist sqlSettings, mkMigrate "migrateAll"] [persistLowerCase|
+share
+  [mkPersist sqlSettings, mkMigrate "migrateAll"]
+  [persistLowerCase|
 
 Board
   name        Text          -- short name e.g. "g", "b", "pol"

@@ -2,10 +2,9 @@
 
 module LambdaChan.DatabaseSpec (spec) where
 
-import Control.Exception (SomeException, catch)
 import Data.Time (addUTCTime, getCurrentTime)
 import Database.Persist (Entity (..), entityKey, entityVal)
-import Database.Persist.Sql (fromSqlKey, runSqlPool, toSqlKey)
+import Database.Persist.Sql (fromSqlKey, runSqlPool)
 import Test.Hspec
 
 import LambdaChan.Auth (hashUserPassword, sessionDuration)
@@ -16,7 +15,6 @@ import LambdaChan.Types (AuthUser (..), UserRole (..))
 
 spec :: Spec
 spec = around withTestPool $ do
-
   describe "Boards" $ do
     it "starts with no boards" $ \pool -> do
       boards <- runSqlPool listBoards pool
@@ -33,7 +31,7 @@ spec = around withTestPool $ do
       now <- getCurrentTime
       bid <- runSqlPool (createBoard (Board "del" "Delete Me" "" now)) pool
       tid <- runSqlPool (createThread (Thread bid Nothing now now False False False)) pool
-      _   <- runSqlPool (createPost (Post tid bid "Anon" Nothing "hello" Nothing Nothing Nothing False now)) pool
+      _ <- runSqlPool (createPost (Post tid bid "Anon" Nothing "hello" Nothing Nothing Nothing False now)) pool
       runSqlPool (hardDeleteBoard bid) pool
       mBoard <- runSqlPool (getBoardByName "del") pool
       mBoard `shouldBe` Nothing
@@ -43,8 +41,8 @@ spec = around withTestPool $ do
       now <- getCurrentTime
       let earlier = addUTCTime (-100) now
       bid <- runSqlPool (createBoard (Board "g2" "Tech" "" now)) pool
-      t1  <- runSqlPool (createThread (Thread bid Nothing earlier earlier False False False)) pool
-      t2  <- runSqlPool (createThread (Thread bid Nothing now now False True False)) pool
+      t1 <- runSqlPool (createThread (Thread bid Nothing earlier earlier False False False)) pool
+      t2 <- runSqlPool (createThread (Thread bid Nothing now now False True False)) pool
       threads <- runSqlPool (getThreadsByBoard bid) pool
       -- Sticky thread (t2) should appear first
       map entityKey threads `shouldBe` [t2, t1]
@@ -72,8 +70,8 @@ spec = around withTestPool $ do
       let earlier = addUTCTime (-60) now
       bid <- runSqlPool (createBoard (Board "g5" "Tech" "" now)) pool
       tid <- runSqlPool (createThread (Thread bid Nothing now now False False False)) pool
-      p1  <- runSqlPool (createPost (Post tid bid "Anon" Nothing "OP" Nothing Nothing Nothing False earlier)) pool
-      _   <- runSqlPool (createPost (Post tid bid "Anon" Nothing "Reply" Nothing Nothing Nothing False now)) pool
+      p1 <- runSqlPool (createPost (Post tid bid "Anon" Nothing "OP" Nothing Nothing Nothing False earlier)) pool
+      _ <- runSqlPool (createPost (Post tid bid "Anon" Nothing "Reply" Nothing Nothing Nothing False now)) pool
       mOp <- runSqlPool (getOpPost tid) pool
       fmap entityKey mOp `shouldBe` Just p1
 
@@ -81,8 +79,8 @@ spec = around withTestPool $ do
       now <- getCurrentTime
       bid <- runSqlPool (createBoard (Board "g6" "Tech" "" now)) pool
       tid <- runSqlPool (createThread (Thread bid Nothing now now False False False)) pool
-      p1  <- runSqlPool (createPost (Post tid bid "Anon" Nothing "post1" Nothing Nothing Nothing False now)) pool
-      _   <- runSqlPool (createPost (Post tid bid "Anon" Nothing "post2" Nothing Nothing Nothing False now)) pool
+      p1 <- runSqlPool (createPost (Post tid bid "Anon" Nothing "post1" Nothing Nothing Nothing False now)) pool
+      _ <- runSqlPool (createPost (Post tid bid "Anon" Nothing "post2" Nothing Nothing Nothing False now)) pool
       runSqlPool (softDeletePost p1) pool
       cnt <- runSqlPool (getPostCount tid) pool
       cnt `shouldBe` 1
@@ -90,15 +88,15 @@ spec = around withTestPool $ do
   describe "Users" $ do
     it "creates and retrieves a user by username" $ \pool -> do
       hash <- hashUserPassword "secret"
-      now  <- getCurrentTime
-      _    <- runSqlPool (createUser (User "alice" hash AdminRole now)) pool
-      mU   <- runSqlPool (getUserByUsername "alice") pool
+      now <- getCurrentTime
+      _ <- runSqlPool (createUser (User "alice" hash AdminRole now)) pool
+      mU <- runSqlPool (getUserByUsername "alice") pool
       fmap (userUsername . entityVal) mU `shouldBe` Just "alice"
 
     it "hard-deletes a user" $ \pool -> do
       hash <- hashUserPassword "secret"
-      now  <- getCurrentTime
-      uid  <- runSqlPool (createUser (User "bob" hash ModeratorRole now)) pool
+      now <- getCurrentTime
+      uid <- runSqlPool (createUser (User "bob" hash ModeratorRole now)) pool
       runSqlPool (hardDeleteUser uid) pool
       mU <- runSqlPool (getUserByUsername "bob") pool
       mU `shouldBe` Nothing
@@ -106,8 +104,8 @@ spec = around withTestPool $ do
   describe "Sessions" $ do
     it "returns Nothing for an expired session" $ \pool -> do
       hash <- hashUserPassword "secret"
-      now  <- getCurrentTime
-      uid  <- runSqlPool (createUser (User "charlie" hash AdminRole now)) pool
+      now <- getCurrentTime
+      uid <- runSqlPool (createUser (User "charlie" hash AdminRole now)) pool
       let expired = addUTCTime (-1) now
       _ <- runSqlPool (createSession (Session uid "tok-expired" now expired)) pool
       result <- runSqlPool (getSessionUser "tok-expired" now) pool
@@ -115,8 +113,8 @@ spec = around withTestPool $ do
 
     it "returns AuthUser for a valid session" $ \pool -> do
       hash <- hashUserPassword "secret"
-      now  <- getCurrentTime
-      uid  <- runSqlPool (createUser (User "diana" hash AdminRole now)) pool
+      now <- getCurrentTime
+      uid <- runSqlPool (createUser (User "diana" hash AdminRole now)) pool
       let expiry = addUTCTime sessionDuration now
       _ <- runSqlPool (createSession (Session uid "tok-valid" now expiry)) pool
       result <- runSqlPool (getSessionUser "tok-valid" now) pool
@@ -124,9 +122,9 @@ spec = around withTestPool $ do
 
     it "assigns mod boards correctly" $ \pool -> do
       hash <- hashUserPassword "secret"
-      now  <- getCurrentTime
-      bid  <- runSqlPool (createBoard (Board "x" "X" "" now)) pool
-      uid  <- runSqlPool (createUser (User "eve" hash ModeratorRole now)) pool
+      now <- getCurrentTime
+      bid <- runSqlPool (createBoard (Board "x" "X" "" now)) pool
+      uid <- runSqlPool (createUser (User "eve" hash ModeratorRole now)) pool
       runSqlPool (assignModToBoard uid bid) pool
       let expiry = addUTCTime sessionDuration now
       _ <- runSqlPool (createSession (Session uid "tok-mod" now expiry)) pool

@@ -1,11 +1,11 @@
 {-# LANGUAGE OverloadedStrings #-}
 
-module LambdaChan.App
-  ( mkApp
-  , runApp
-  , initialisePool
-  , seedDatabase
-  ) where
+module LambdaChan.App (
+  mkApp,
+  runApp,
+  initialisePool,
+  seedDatabase,
+) where
 
 import Control.Monad (void, when)
 import Control.Monad.Logger (runStderrLoggingT)
@@ -14,8 +14,8 @@ import qualified Data.Text as T
 import Data.Text.Encoding (encodeUtf8)
 import Data.Time (getCurrentTime)
 import Database.Persist.Postgresql (createPostgresqlPool)
-import Database.Persist.Sqlite (createSqlitePool)
 import Database.Persist.Sql (ConnectionPool, runMigration, runSqlPool)
+import Database.Persist.Sqlite (createSqlitePool)
 import Network.Wai (Application)
 import Network.Wai.Handler.Warp (run)
 import Servant (hoistServer, serve)
@@ -31,10 +31,11 @@ import LambdaChan.Types (UserRole (..))
 
 -- | Create the WAI Application from an AppEnv.
 mkApp :: AppEnv -> Application
-mkApp env = serve lambdaChanAPI $
-  hoistServer lambdaChanAPI (appToHandler env) appServer
-  where
-    appToHandler e app = runReaderT app e
+mkApp env =
+  serve lambdaChanAPI $
+    hoistServer lambdaChanAPI (appToHandler env) appServer
+ where
+  appToHandler e app = runReaderT app e
 
 -- | Create the connection pool for the configured backend.
 initialisePool :: AppConfig -> IO ConnectionPool
@@ -48,10 +49,11 @@ initialisePool cfg = runStderrLoggingT $ case dbBackend cfg of
 runMigrations :: ConnectionPool -> IO ()
 runMigrations pool = runSqlPool (runMigration migrateAll) pool
 
--- | Create a default admin user if no users exist at all.
--- Credentials are logged to stderr so they can be changed immediately.
+{- | Create a default admin user if no users exist at all.
+Credentials are logged to stderr so they can be changed immediately.
+-}
 seedDatabase :: AppConfig -> ConnectionPool -> IO ()
-seedDatabase cfg pool = do
+seedDatabase _ pool = do
   users <- runSqlPool listUsers pool
   when (null users) $ do
     let adminUser = "admin"
@@ -66,12 +68,17 @@ seedDatabase cfg pool = do
     hPutStrLn stderr ""
     passHash <- hashUserPassword (T.pack adminPass)
     now <- getCurrentTime
-    void $ runSqlPool (createUser User
-      { userUsername     = T.pack adminUser
-      , userPasswordHash = passHash
-      , userRole         = AdminRole
-      , userCreatedAt    = now
-      }) pool
+    void $
+      runSqlPool
+        ( createUser
+            User
+              { userUsername = T.pack adminUser
+              , userPasswordHash = passHash
+              , userRole = AdminRole
+              , userCreatedAt = now
+              }
+        )
+        pool
 
 -- | Start the HTTP server.
 runApp :: AppConfig -> IO ()
@@ -79,7 +86,7 @@ runApp cfg = do
   pool <- initialisePool cfg
   runMigrations pool
   seedDatabase cfg pool
-  let env  = AppEnv { dbPool = pool, appConfig = cfg }
+  let env = AppEnv{dbPool = pool, appConfig = cfg}
       port = serverPort cfg
   hPutStrLn stderr $ "lambdachan listening on port " <> show port
   run port (mkApp env)

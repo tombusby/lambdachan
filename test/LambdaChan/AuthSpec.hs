@@ -2,10 +2,8 @@
 
 module LambdaChan.AuthSpec (spec) where
 
-import Data.Text (Text)
 import qualified Data.Text as T
 import Test.Hspec
-import Test.QuickCheck
 
 import LambdaChan.Auth
 
@@ -38,8 +36,8 @@ spec = do
       computeSecureTripcode "salt" "pass" `shouldNotBe` computeTripcode "pass"
 
     it "changes when the salt changes" $
-      computeSecureTripcode "salt1" "pass" `shouldNotBe`
-      computeSecureTripcode "salt2" "pass"
+      computeSecureTripcode "salt1" "pass"
+        `shouldNotBe` computeSecureTripcode "salt2" "pass"
 
   describe "parseAuthorName" $ do
     let salt = "server-salt"
@@ -60,8 +58,8 @@ spec = do
       trip `shouldNotBe` Nothing
 
     it "standard and secure tripcodes differ for the same password" $ do
-      let (_, stdTrip)  = parseAuthorName salt "Name#password"
-      let (_, secTrip)  = parseAuthorName salt "Name##password"
+      let (_, stdTrip) = parseAuthorName salt "Name#password"
+      let (_, secTrip) = parseAuthorName salt "Name##password"
       stdTrip `shouldNotBe` secTrip
 
     it "strips whitespace from name" $ do
@@ -90,4 +88,4 @@ spec = do
     it "two hashes of the same password differ (bcrypt salts)" $ do
       h1 <- hashUserPassword "same"
       h2 <- hashUserPassword "same"
-      h1 `shouldNotBe` h2  -- bcrypt uses random salts
+      h1 `shouldNotBe` h2 -- bcrypt uses random salts

@@ -106,6 +106,7 @@ test-suite lambdachan-test
       QuickCheck
     , aeson >=2.0
     , base >=4.7 && <5
+    , base64-bytestring
     , bytestring
     , containers
     , hspec >=2.0
