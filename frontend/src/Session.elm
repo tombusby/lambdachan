@@ -2,7 +2,6 @@ port module Session exposing
     ( clearSession
     , isAdmin
     , isMod
-    , onSessionChange
     , saveSession
     , storeSession
     )
@@ -12,7 +11,6 @@ import Types exposing (Session, UserRole(..), sessionEncoder)
 
 
 port storeSession : Maybe String -> Cmd msg
-port onSessionChange : (Maybe String -> msg) -> Sub msg
 
 
 clearSession : Cmd msg

@@ -217,10 +217,3 @@ sessionEncoder s =
           )
         ]
 
-imageUploadEncoder : ImageUpload -> E.Value
-imageUploadEncoder img =
-    E.object
-        [ ( "data", E.string img.data_ )
-        , ( "filename", E.string img.filename )
-        , ( "mimeType", E.string img.mimeType )
-        ]

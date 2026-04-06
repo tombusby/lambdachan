@@ -70,7 +70,7 @@ spec = do
       -- "Name##pass" should be treated as secure tripcode
       let (name, trip) = parseAuthorName salt "Name##pass"
       name `shouldBe` "Name"
-      trip `shouldSatisfy` (maybe False (T.isPrefixOf "!!"))
+      trip `shouldSatisfy` maybe False (T.isPrefixOf "!!")
 
     it "standard tripcode is reproducible across calls" $
       fst (parseAuthorName salt "Name#pass") == fst (parseAuthorName salt "Name#pass")

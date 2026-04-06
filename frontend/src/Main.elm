@@ -7,7 +7,6 @@ import Html exposing (..)
 import Html.Attributes exposing (class)
 import Http
 import Json.Decode as D
-import Json.Encode as E
 import Page.Admin as Admin
 import Page.BoardList as BoardList
 import Page.Catalog as Catalog
@@ -15,7 +14,7 @@ import Page.Login as Login
 import Page.Thread as Thread
 import Route exposing (Route(..))
 import Session
-import Types exposing (Board, Session, UserRole(..), sessionDecoder, sessionEncoder)
+import Types exposing (Board, Session, sessionDecoder)
 import Url exposing (Url)
 import View.Nav as NavView
 
@@ -30,7 +29,6 @@ type PageModel
     | ThreadModel Thread.Model
     | LoginModel Login.Model
     | AdminModel Admin.Model
-    | Loading
     | NotFound
 
 
@@ -181,7 +179,7 @@ updatePage pageMsg model =
         ( LoginMsg (Login.LoginResult (Ok session)), LoginModel _ ) ->
             ( { model | session = Just session, notice = Nothing }
             , Cmd.batch
-                [ Session.storeSession (Just (E.encode 0 (sessionEncoder session)))
+                [ Session.saveSession session
                 , Nav.pushUrl model.key "/"
                 ]
             )
@@ -285,9 +283,6 @@ view model =
 viewPage : Model -> Html Msg
 viewPage model =
     case model.page of
-        Loading ->
-            div [ class "loading" ] [ text "Loading…" ]
-
         NotFound ->
             div [ class "not-found" ] [ text "404 — page not found" ]
 

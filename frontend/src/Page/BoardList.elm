@@ -5,7 +5,7 @@ import Html exposing (..)
 import Html.Attributes exposing (class, href)
 import Http
 import Route
-import Types exposing (Board, Session, UserRole(..))
+import Types exposing (Board, Session)
 
 
 type alias Model =

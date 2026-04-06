@@ -3,9 +3,8 @@ module View.Post exposing (view, viewCompact)
 import Html exposing (..)
 import Html.Attributes exposing (class, id, style)
 import Html.Events
-import Iso8601
 import Time exposing (Posix, Zone)
-import Types exposing (Post, Session)
+import Types exposing (Post)
 import View.Image as Image
 
 

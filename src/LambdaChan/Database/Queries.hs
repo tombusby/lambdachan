@@ -1,5 +1,3 @@
-{-# LANGUAGE OverloadedStrings #-}
-
 module LambdaChan.Database.Queries
   ( -- * Boards
     listBoards

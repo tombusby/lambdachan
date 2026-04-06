@@ -2,13 +2,13 @@ module Page.Thread exposing (Model, Msg, init, update, view)
 
 import Api
 import Html exposing (..)
-import Html.Attributes exposing (class)
+import Html.Attributes exposing (class, href)
 import Html.Events exposing (onClick)
 import Http
 import Session as Sess
 import Task
 import Time exposing (Zone)
-import Types exposing (Post, Session, ThreadDetail, ThreadSummary)
+import Types exposing (Post, Session, ThreadDetail)
 import View.Modal as Modal
 import View.Post as Post
 import View.PostForm as PostForm
@@ -206,7 +206,7 @@ view maybeSession model =
                 div []
                     [ div [ class "board-header" ]
                         [ h1 []
-                            [ a [ Html.Attributes.href ("/b/" ++ model.boardName) ]
+                            [ a [ href ("/b/" ++ model.boardName) ]
                                 [ text ("/" ++ model.boardName ++ "/") ]
                             , text (" — " ++ Maybe.withDefault "No subject" thread.subject)
                             ]

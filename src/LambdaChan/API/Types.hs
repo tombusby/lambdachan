@@ -279,7 +279,7 @@ instance ToJSON CreateUserRequest where
     object
       ["username" .= curUsername r, "password" .= curPassword r, "role" .= curRole r]
 
-data ToggleRequest = ToggleRequest
+newtype ToggleRequest = ToggleRequest
   { togValue :: Bool
   }
   deriving (Show, Eq)

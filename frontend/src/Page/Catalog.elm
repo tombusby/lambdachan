@@ -8,7 +8,7 @@ import Http
 import Session as Sess
 import Task
 import Time exposing (Zone)
-import Types exposing (Board, BoardCatalog, Session, ThreadSummary)
+import Types exposing (BoardCatalog, Session, ThreadSummary)
 import View.Modal as Modal
 import View.Post as Post
 import View.PostForm as PostForm

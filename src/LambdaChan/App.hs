@@ -9,6 +9,7 @@ module LambdaChan.App (
 ) where
 
 import Control.Monad (void, when)
+import Data.Maybe (fromMaybe)
 import Control.Monad.Logger (runStderrLoggingT)
 import Control.Monad.Reader (runReaderT)
 import qualified Data.Text as T
@@ -39,7 +40,7 @@ import LambdaChan.Types (UserRole (..))
 mkApiApp :: AppEnv -> Application
 mkApiApp env =
   serve lambdaChanAPI $
-    hoistServer lambdaChanAPI (\app -> runReaderT app env) appServer
+    hoistServer lambdaChanAPI (`runReaderT` env) appServer
 
 -- | Full WAI Application from an AppEnv.
 -- Requests with path starting with "api" are routed to Servant (with the
@@ -54,10 +55,7 @@ mkApp env req respond
       staticFileApp req respond
   where
     servantApp = mkApiApp env
-    staticDir =
-      case staticFilesDir (appConfig env) of
-        Just d  -> d
-        Nothing -> "frontend/dist"
+    staticDir = fromMaybe "frontend/dist" (staticFilesDir (appConfig env))
     staticFileApp =
       staticApp
         (defaultFileServerSettings staticDir)
@@ -68,12 +66,11 @@ mkApp env req respond
 -- | Serve index.html for any path that doesn't match a real file,
 -- allowing the Elm router to handle client-side routes on browser refresh.
 spaFallback :: FilePath -> Application
-spaFallback dir req respond =
+spaFallback dir req =
   staticApp
     (defaultFileServerSettings dir)
       { ssIndices = [unsafeToPiece "index.html"] }
     (req { pathInfo = [] })
-    respond
 
 -- | Create the connection pool for the configured backend.
 initialisePool :: AppConfig -> IO ConnectionPool
@@ -85,7 +82,7 @@ initialisePool cfg = runStderrLoggingT $ case dbBackend cfg of
 
 -- | Run all pending migrations against the pool.
 runMigrations :: ConnectionPool -> IO ()
-runMigrations pool = runSqlPool (runMigration migrateAll) pool
+runMigrations = runSqlPool (runMigration migrateAll)
 
 {- | Create a default admin user if no users exist at all.
 Credentials are logged to stderr so they can be changed immediately.

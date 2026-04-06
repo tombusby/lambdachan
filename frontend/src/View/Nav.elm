@@ -1,9 +1,8 @@
 module View.Nav exposing (view)
 
 import Html exposing (..)
-import Html.Attributes exposing (class, href, style)
+import Html.Attributes exposing (class, href)
 import Html.Events
-import Route
 import Types exposing (Board, Session, UserRole(..))
 
 

@@ -10,7 +10,7 @@ import Control.Monad.Reader (asks)
 import Data.ByteString (ByteString)
 import qualified Data.ByteString.Base64 as B64
 import Data.Int (Int64)
-import Data.Maybe (isJust)
+import Data.Maybe (fromMaybe, isJust)
 import Data.Text (Text)
 import qualified Data.Text as T
 import Data.Text.Encoding (encodeUtf8)
@@ -106,9 +106,7 @@ getModBoardNames uid role = case role of
       ]
 
 extractBearerToken :: Text -> Text
-extractBearerToken h = T.strip $ case T.stripPrefix "Bearer " h of
-  Just t -> t
-  Nothing -> h
+extractBearerToken h = T.strip $ fromMaybe h (T.stripPrefix "Bearer " h)
 
 -- ---------------------------------------------------------------------------
 -- Board handlers
@@ -139,7 +137,7 @@ getBoardH :: Text -> App BoardCatalogResponse
 getBoardH name = do
   boardEntity <- getBoardOr404 name
   threadEntities <- runDB $ getThreadsByBoard (entityKey boardEntity)
-  summaries <- fmap concatMaybes $ forM threadEntities buildThreadSummary
+  summaries <- concatMaybes <$> forM threadEntities buildThreadSummary
   return
     BoardCatalogResponse
       { bcrBoard = boardToResponse boardEntity
