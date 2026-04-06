@@ -1,6 +1,6 @@
-# lambdachan
+# λchan
 
-A 4chan-style imageboard REST API built with [Servant](https://haskell-servant.github.io/) and [Persistent](https://www.yesodweb.com/book/persistent). Anonymous posting, tripcodes, per-board moderation, and configurable database backends (SQLite for dev, PostgreSQL for production).
+A 4chan-style imageboard built with [Servant](https://haskell-servant.github.io/) (Haskell) and [Elm](https://elm-lang.org/). Anonymous posting, tripcodes, per-board moderation, configurable database backends (SQLite for dev, PostgreSQL for production), and a classic 4chan-aesthetic frontend.
 
 ---
 
@@ -9,6 +9,7 @@ A 4chan-style imageboard REST API built with [Servant](https://haskell-servant.g
 - [Features](#features)
 - [Quick start](#quick-start)
 - [Configuration](#configuration)
+- [Frontend](#frontend)
 - [API reference](#api-reference)
 - [Authentication](#authentication)
 - [Tripcodes](#tripcodes)
@@ -30,6 +31,7 @@ A 4chan-style imageboard REST API built with [Servant](https://haskell-servant.g
 - **Soft deletes** — moderated posts/threads are flagged `isDeleted`; deleting the OP removes the whole thread
 - **Configurable DB** — SQLite (zero config) or PostgreSQL via connection string
 - **Auto-seeded admin** — a default admin account is created on first run if no users exist
+- **Elm SPA** — a 4chan-style frontend served from the same binary; no separate web server required
 
 ---
 
@@ -38,16 +40,20 @@ A 4chan-style imageboard REST API built with [Servant](https://haskell-servant.g
 ### Prerequisites
 
 - [Stack](https://docs.haskellstack.org/) (installs GHC automatically)
+- [Elm 0.19.1](https://guide.elm-lang.org/install/elm.html) — for building the frontend
 - For PostgreSQL support: `libpq` system library (`brew install libpq` on macOS, `apt install libpq-dev` on Debian/Ubuntu)
 
-### Build and run (SQLite)
+### Build and run (SQLite, with frontend)
 
 ```bash
 git clone <repo>
 cd lambdachan
 stack build
+make elm-build          # compiles Elm → frontend/dist/
 stack exec lambdachan-exe
 ```
+
+Then open `http://localhost:8080` in a browser.
 
 On first run with an empty database you will see:
 
@@ -61,11 +67,12 @@ On first run with an empty database you will see:
 lambdachan listening on port 8080
 ```
 
-Change the default password immediately by deleting the seeded user via the admin API and creating a new one.
+Log in at `http://localhost:8080/login` and change the password immediately via the admin panel.
 
 ### Run with PostgreSQL
 
 ```bash
+make elm-build
 DATABASE_URL="host=localhost dbname=lambdachan user=postgres password=secret" \
   stack exec lambdachan-exe
 ```
@@ -81,23 +88,75 @@ All configuration is via environment variables. Defaults are shown.
 | `DATABASE_URL` | `lambdachan.db` (SQLite) | SQLite file path **or** PostgreSQL connection string (must contain `postgres`) |
 | `PORT` | `8080` | HTTP port to listen on |
 | `TRIPCODE_SALT` | `changeme-in-production` | Server-side salt for `##` secure tripcodes — **set a random value in production** |
+| `STATIC_DIR` | `frontend/dist` | Directory to serve compiled frontend assets from |
 
 Example PostgreSQL connection string: `host=db.example.com port=5432 dbname=lambdachan user=app password=hunter2 sslmode=require`
 
 ---
 
+## Frontend
+
+The frontend is an Elm 0.19.1 SPA styled to mimic 4chan's classic aesthetic. It is served directly by the Haskell binary — no separate web server or reverse proxy needed.
+
+### How routing works
+
+All requests whose path begins with `/api/` are routed to the Servant REST API (with the `/api` prefix stripped). Everything else is served as static files from `frontend/dist/`, with `index.html` as the fallback for client-side routes.
+
+```
+http://localhost:8080/api/boards   → Servant handler
+http://localhost:8080/b/g/42       → frontend/dist/index.html (Elm router takes over)
+http://localhost:8080/             → frontend/dist/index.html
+```
+
+### Building the frontend
+
+**Without npm (using `elm` directly):**
+
+```bash
+make elm-build      # compiles Elm, copies CSS and index.html to frontend/dist/
+```
+
+**With npm (using Vite):**
+
+```bash
+make frontend-install   # npm install (first time only)
+make frontend-build     # vite build → frontend/dist/
+```
+
+### Development workflow
+
+For active frontend development, Vite provides hot module replacement:
+
+```bash
+# Terminal 1 — Haskell API server
+stack exec lambdachan-exe
+
+# Terminal 2 — Vite dev server with HMR
+cd frontend && npm run dev
+```
+
+Then visit `http://localhost:5173`. Vite proxies all `/api/*` requests to the Haskell server on port 8080. Changes to Elm source files trigger an instant in-browser reload.
+
+Or with the Makefile shortcut:
+
+```bash
+make dev   # starts both concurrently
+```
+
+---
+
 ## API reference
 
-All endpoints return and accept `application/json`. Images are passed as base64-encoded strings inside JSON bodies. Protected endpoints require an `Authorization: Bearer <token>` header obtained from `POST /auth/login`.
+All endpoints are mounted under `/api/`. They return and accept `application/json`. Images are passed as base64-encoded strings inside JSON bodies. Protected endpoints require an `Authorization: Bearer <token>` header obtained from `POST /api/auth/login`.
 
 ### Boards
 
 | Method | Path | Auth | Description |
 |---|---|---|---|
-| `GET` | `/boards` | None | List all boards |
-| `POST` | `/boards` | Admin | Create a board |
-| `GET` | `/boards/:board` | None | Board catalog (thread list with OP previews) |
-| `DELETE` | `/boards/:board` | Admin | Delete a board and all its content |
+| `GET` | `/api/boards` | None | List all boards |
+| `POST` | `/api/boards` | Admin | Create a board |
+| `GET` | `/api/boards/:board` | None | Board catalog (thread list with OP previews) |
+| `DELETE` | `/api/boards/:board` | Admin | Delete a board and all its content |
 
 **Create board request:**
 ```json
@@ -136,11 +195,11 @@ Threads are ordered: sticky threads first, then by `bumpedAt` descending (most r
 
 | Method | Path | Auth | Description |
 |---|---|---|---|
-| `POST` | `/boards/:board/threads` | None | Create a new thread (OP post) |
-| `GET` | `/boards/:board/threads/:id` | None | Get a thread and all its replies |
-| `DELETE` | `/boards/:board/threads/:id` | Mod/Admin | Soft-delete a thread |
-| `PATCH` | `/boards/:board/threads/:id/sticky` | Mod/Admin | Set sticky status |
-| `PATCH` | `/boards/:board/threads/:id/lock` | Mod/Admin | Set locked status |
+| `POST` | `/api/boards/:board/threads` | None | Create a new thread (OP post) |
+| `GET` | `/api/boards/:board/threads/:id` | None | Get a thread and all its replies |
+| `DELETE` | `/api/boards/:board/threads/:id` | Mod/Admin | Soft-delete a thread |
+| `PATCH` | `/api/boards/:board/threads/:id/sticky` | Mod/Admin | Set sticky status |
+| `PATCH` | `/api/boards/:board/threads/:id/lock` | Mod/Admin | Set locked status |
 
 **Create thread request:**
 ```json
@@ -180,8 +239,8 @@ Threads are ordered: sticky threads first, then by `bumpedAt` descending (most r
 
 | Method | Path | Auth | Description |
 |---|---|---|---|
-| `POST` | `/boards/:board/threads/:id/posts` | None | Reply to a thread |
-| `DELETE` | `/boards/:board/threads/:id/posts/:pid` | Mod/Admin | Soft-delete a post |
+| `POST` | `/api/boards/:board/threads/:id/posts` | None | Reply to a thread |
+| `DELETE` | `/api/boards/:board/threads/:id/posts/:pid` | Mod/Admin | Soft-delete a post |
 
 **Create post request:**
 ```json
@@ -200,8 +259,8 @@ Deleting the OP post (post ID matches the first post in the thread) will soft-de
 
 | Method | Path | Auth | Description |
 |---|---|---|---|
-| `POST` | `/auth/login` | None | Log in; returns a session token |
-| `POST` | `/auth/logout` | Bearer | Invalidate the current session token |
+| `POST` | `/api/auth/login` | None | Log in; returns a session token |
+| `POST` | `/api/auth/logout` | Bearer | Invalidate the current session token |
 
 **Login request:**
 ```json
@@ -231,11 +290,11 @@ All routes require an admin session token.
 
 | Method | Path | Description |
 |---|---|---|
-| `GET` | `/admin/users` | List all moderator/admin accounts |
-| `POST` | `/admin/users` | Create a moderator or admin account |
-| `DELETE` | `/admin/users/:id` | Delete a user account |
-| `POST` | `/admin/users/:id/boards/:board` | Grant a moderator access to a board |
-| `DELETE` | `/admin/users/:id/boards/:board` | Revoke a moderator's access to a board |
+| `GET` | `/api/admin/users` | List all moderator/admin accounts |
+| `POST` | `/api/admin/users` | Create a moderator or admin account |
+| `DELETE` | `/api/admin/users/:id` | Delete a user account |
+| `POST` | `/api/admin/users/:id/boards/:board` | Grant a moderator access to a board |
+| `DELETE` | `/api/admin/users/:id/boards/:board` | Revoke a moderator's access to a board |
 
 **Create user request:**
 ```json
@@ -253,7 +312,7 @@ Valid roles: `"admin"`, `"moderator"`.
 
 ## Authentication
 
-lambdachan uses **session tokens** (UUID v4). On login, a token is returned and stored in the database with a 7-day expiry. Include it as a Bearer token on protected requests.
+λchan uses **session tokens** (UUID v4). On login, a token is returned and stored in the database with a 7-day expiry. Include it as a Bearer token on protected requests.
 
 Anonymous users post without any token. The `authorName` field in post/thread creation requests is free text — anyone can type any name (with or without a tripcode).
 
@@ -271,7 +330,7 @@ In the `authorName` field, append `#password` or `##password`:
 | `Anonymous#hunter2` | `Anonymous` | `!AbCdEfGhIj` | SHA256(password) |
 | `Anonymous##hunter2` | `Anonymous` | `!!KlMnOpQrSt` | SHA256(password + server salt) |
 
-**Standard tripcode** (`#`): deterministic; the same password always produces the same tripcode across all lambdachan instances.
+**Standard tripcode** (`#`): deterministic; the same password always produces the same tripcode across all λchan instances.
 
 **Secure tripcode** (`##`): includes a server-side salt (`TRIPCODE_SALT`), so it cannot be computed or spoofed by users who do not know the salt. Set a long random value for `TRIPCODE_SALT` in production.
 
@@ -287,7 +346,7 @@ Computed tripcodes appear in the `tripcode` field of post responses.
 | **Moderator** | Everything anonymous can do + delete posts/threads, sticky/lock threads — on boards they are assigned to only |
 | **Admin** | Everything moderators can do on all boards + create/delete boards, create/delete/assign user accounts |
 
-Moderators are assigned to boards individually via `POST /admin/users/:id/boards/:board`.
+Moderators are assigned to boards individually via `POST /api/admin/users/:id/boards/:board`.
 
 ---
 
@@ -321,6 +380,8 @@ Schema migrations are applied automatically on startup with `runMigration migrat
 
 ## Development
 
+### Backend (Haskell)
+
 ```bash
 # Build
 stack build
@@ -331,29 +392,52 @@ find src -name '*.hs' | entr stack build
 # Run with auto-reload via ghcid
 stack exec ghcid -- --command="stack ghci lambdachan:lib"
 
-# Launch the server in dev mode
-stack exec lambdachan-exe
-
 # Check types without a full build
 stack build --fast
 ```
 
-### Adding a new endpoint
+#### Adding a new endpoint
 
 1. Add the endpoint type to `LambdaChanAPI` in `src/LambdaChan/API/Types.hs`
 2. Add the handler function to `appServer` in `src/LambdaChan/API/Handlers.hs` — **order must match the type exactly**
 3. Implement the handler function
 4. Add tests in `test/LambdaChan/`
 
-### Adding a new database entity
+#### Adding a new database entity
 
 1. Add the entity to the `[persistLowerCase|...|]` block in `src/LambdaChan/Database/Schema.hs`
 2. Add query functions in `src/LambdaChan/Database/Queries.hs`
 3. Migrations run automatically on startup — no manual migration files needed for development
 
+### Frontend (Elm)
+
+```bash
+# Type-check without producing output
+cd frontend && elm make src/Main.elm --output=/dev/null
+
+# Build to frontend/dist/ (no npm)
+make elm-build
+
+# Install npm deps and build with Vite (enables HMR in dev)
+make frontend-install
+make frontend-build
+
+# Full dev workflow (Haskell on :8080, Vite+HMR on :5173)
+make dev
+```
+
+#### Adding a new page
+
+1. Create `frontend/src/Page/NewPage.elm` with `Model`, `Msg`, `init`, `update`, `view`
+2. Add a constructor to `Route` in `frontend/src/Route.elm` and extend `routeParser`
+3. Add `NewPageModel NewPage.Model` to `PageModel` and `NewPageMsg NewPage.Msg` to `PageMsg` in `Main.elm`
+4. Handle the new route in `routeToPage` and the new message in `updatePage`/`viewPage`
+
 ---
 
 ## Testing
+
+### Backend
 
 ```bash
 # Run all tests
@@ -374,7 +458,33 @@ The test suite has three components:
 | `DatabaseSpec` | Integration | CRUD, soft deletes, bump ordering, session expiry, mod board assignment — against an in-memory SQLite DB |
 | `APISpec` | HTTP integration | Full HTTP round-trips via `hspec-wai` — auth enforcement, 404 handling, content negotiation |
 
-Each test runs against a fresh in-memory SQLite database (`:memory:`), so tests are fully isolated with no cleanup required.
+Each test runs against a fresh in-memory SQLite database (`:memory:`), so tests are fully isolated with no cleanup required. The test app uses `mkApiApp` (pure Servant, no static file layer) so test paths do not need the `/api` prefix.
+
+### Frontend smoke test
+
+Build and run the full stack, then verify in a browser:
+
+```bash
+make elm-run   # elm-build + stack exec lambdachan-exe
+# open http://localhost:8080
+```
+
+Things to check:
+
+- Board list loads at `/`
+- Navigating to `/b/:board` shows the catalog
+- A new thread can be posted anonymously
+- Login at `/login` stores the session and shows the logout button
+- After logging in as admin, mod controls (delete, sticky, lock) appear on threads and posts
+- The admin panel at `/admin` lists users and allows creating/deleting accounts and assigning moderators to boards
+
+### Frontend type-check
+
+```bash
+cd frontend && elm make src/Main.elm --output=/dev/null
+```
+
+This runs the Elm compiler across all 14 modules without writing any output. Elm's type system catches most logic errors at compile time, so a clean build here provides strong confidence in the frontend's correctness.
 
 ---
 
@@ -382,28 +492,54 @@ Each test runs against a fresh in-memory SQLite database (`:memory:`), so tests 
 
 ```
 lambdachan/
+├── Makefile                             — Common tasks (build, test, elm-build, dev)
 ├── app/
-│   └── Main.hs                      — Entry point; reads env vars, calls runApp
+│   └── Main.hs                          — Entry point; reads env vars, calls runApp
 ├── src/
-│   ├── Lib.hs                       — Public re-exports
+│   ├── Lib.hs                           — Public re-exports
 │   └── LambdaChan/
-│       ├── Types.hs                 — Core types: UserRole, AuthUser, AppError
-│       ├── Config.hs                — AppConfig, AppEnv, App monad (ReaderT AppEnv Handler)
-│       ├── Auth.hs                  — Tripcodes, bcrypt, session tokens, auth guards
-│       ├── App.hs                   — mkApp, runApp, pool init, default admin seed
+│       ├── Types.hs                     — Core types: UserRole, AuthUser, AppError
+│       ├── Config.hs                    — AppConfig, AppEnv, App monad (ReaderT AppEnv Handler)
+│       ├── Auth.hs                      — Tripcodes, bcrypt, session tokens, auth guards
+│       ├── App.hs                       — mkApp (with static routing), mkApiApp (Servant only), runApp
 │       ├── Database/
-│       │   ├── Schema.hs            — Persistent entity definitions + migrateAll
-│       │   └── Queries.hs           — All database operations
+│       │   ├── Schema.hs                — Persistent entity definitions + migrateAll
+│       │   └── Queries.hs               — All database operations
 │       └── API/
-│           ├── Types.hs             — Servant API type (18 endpoints) + JSON types
-│           └── Handlers.hs          — Request handler implementations
+│           ├── Types.hs                 — Servant API type (18 endpoints) + JSON types
+│           └── Handlers.hs              — Request handler implementations
 ├── test/
-│   ├── Spec.hs                      — Test runner
+│   ├── Spec.hs                          — Test runner
 │   └── LambdaChan/
-│       ├── TestHelpers.hs           — Shared test utilities (test pool, app, user fixtures)
-│       ├── AuthSpec.hs              — Auth unit tests
-│       ├── DatabaseSpec.hs          — Database integration tests
-│       └── APISpec.hs               — HTTP integration tests
-├── package.yaml                     — hpack config (dependencies, GHC options)
-└── stack.yaml                       — Stack resolver (LTS 24.36, GHC 9.10.3)
+│       ├── TestHelpers.hs               — Shared test utilities (test pool, app, user fixtures)
+│       ├── AuthSpec.hs                  — Auth unit tests
+│       ├── DatabaseSpec.hs              — Database integration tests
+│       └── APISpec.hs                   — HTTP integration tests
+├── frontend/
+│   ├── elm.json                         — Elm dependencies
+│   ├── package.json                     — npm dependencies (Vite + vite-plugin-elm)
+│   ├── vite.config.js                   — Vite config; proxies /api/* to localhost:8080 in dev
+│   ├── index.html                       — SPA shell for Vite dev/build
+│   ├── dist-index.html                  — SPA shell for elm-make builds (no ES modules)
+│   └── src/
+│       ├── Main.elm                     — Browser.application root
+│       ├── Route.elm                    — URL parser (5 routes)
+│       ├── Types.elm                    — Shared Elm types + JSON decoders/encoders
+│       ├── Api.elm                      — All HTTP calls, JSON decoders, error helpers
+│       ├── Session.elm                  — localStorage ports + session helpers
+│       ├── Page/
+│       │   ├── BoardList.elm            — Board directory
+│       │   ├── Catalog.elm              — Thread list + new-thread form
+│       │   ├── Thread.elm               — Thread view + reply form + mod controls
+│       │   ├── Login.elm                — Login form
+│       │   └── Admin.elm                — User and moderator management
+│       ├── View/
+│       │   ├── Post.elm                 — Post renderer (full and compact)
+│       │   ├── PostForm.elm             — Shared post/thread form with image upload
+│       │   ├── Image.elm                — base64 image thumbnail rendering
+│       │   ├── Nav.elm                  — Top navigation bar
+│       │   └── Modal.elm                — Delete confirmation modal
+│       └── style.css                    — 4chan-inspired stylesheet
+├── package.yaml                         — hpack config (dependencies, GHC options)
+└── stack.yaml                           — Stack resolver (LTS 24.36, GHC 9.10.3)
 ```

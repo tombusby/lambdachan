@@ -64,6 +64,7 @@ library
     , transformers
     , uuid >=1.3
     , wai
+    , wai-app-static
     , warp
   default-language: Haskell2010
 

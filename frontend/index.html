@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>λchan</title>
+  <link rel="stylesheet" href="./src/style.css">
+</head>
+<body>
+  <div id="app"></div>
+  <script type="module">
+    import { Elm } from './src/Main.elm'
+
+    const storedSession = localStorage.getItem('session')
+
+    const app = Elm.Main.init({
+      node: document.getElementById('app'),
+      flags: storedSession
+    })
+
+    app.ports.storeSession.subscribe(function(val) {
+      if (val === null) {
+        localStorage.removeItem('session')
+      } else {
+        localStorage.setItem('session', val)
+      }
+    })
+  </script>
+</body>
+</html>

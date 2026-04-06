@@ -2,6 +2,7 @@
 
 module LambdaChan.App (
   mkApp,
+  mkApiApp,
   runApp,
   initialisePool,
   seedDatabase,
@@ -16,9 +17,12 @@ import Data.Time (getCurrentTime)
 import Database.Persist.Postgresql (createPostgresqlPool)
 import Database.Persist.Sql (ConnectionPool, runMigration, runSqlPool)
 import Database.Persist.Sqlite (createSqlitePool)
-import Network.Wai (Application)
+import Network.Wai (Application, pathInfo)
+import Network.Wai.Application.Static
+  ( defaultFileServerSettings, staticApp )
 import Network.Wai.Handler.Warp (run)
 import Servant (hoistServer, serve)
+import WaiAppStatic.Types (ss404Handler, ssIndices, unsafeToPiece)
 import System.IO (hPutStrLn, stderr)
 
 import LambdaChan.API.Handlers (appServer)
@@ -29,13 +33,47 @@ import LambdaChan.Database.Queries (createUser, listUsers)
 import LambdaChan.Database.Schema (User (..), migrateAll)
 import LambdaChan.Types (UserRole (..))
 
--- | Create the WAI Application from an AppEnv.
-mkApp :: AppEnv -> Application
-mkApp env =
+-- | Pure Servant application — no static file routing.
+-- Use this in tests so that the test paths (/boards, /auth/login, etc.)
+-- are routed directly to Servant without needing an /api prefix.
+mkApiApp :: AppEnv -> Application
+mkApiApp env =
   serve lambdaChanAPI $
-    hoistServer lambdaChanAPI (appToHandler env) appServer
- where
-  appToHandler e app = runReaderT app e
+    hoistServer lambdaChanAPI (\app -> runReaderT app env) appServer
+
+-- | Full WAI Application from an AppEnv.
+-- Requests with path starting with "api" are routed to Servant (with the
+-- "api" segment stripped).  Everything else is served from frontend/dist/,
+-- falling back to index.html for SPA client-side routing.
+mkApp :: AppEnv -> Application
+mkApp env req respond
+  | "api" : rest <- pathInfo req =
+      let req' = req { pathInfo = rest }
+      in servantApp req' respond
+  | otherwise =
+      staticFileApp req respond
+  where
+    servantApp = mkApiApp env
+    staticDir =
+      case staticFilesDir (appConfig env) of
+        Just d  -> d
+        Nothing -> "frontend/dist"
+    staticFileApp =
+      staticApp
+        (defaultFileServerSettings staticDir)
+          { ssIndices    = [unsafeToPiece "index.html"]
+          , ss404Handler = Just (spaFallback staticDir)
+          }
+
+-- | Serve index.html for any path that doesn't match a real file,
+-- allowing the Elm router to handle client-side routes on browser refresh.
+spaFallback :: FilePath -> Application
+spaFallback dir req respond =
+  staticApp
+    (defaultFileServerSettings dir)
+      { ssIndices = [unsafeToPiece "index.html"] }
+    (req { pathInfo = [] })
+    respond
 
 -- | Create the connection pool for the configured backend.
 initialisePool :: AppConfig -> IO ConnectionPool

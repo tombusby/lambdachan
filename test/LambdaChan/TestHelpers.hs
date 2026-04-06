@@ -21,7 +21,7 @@ import Database.Persist.Sql (ConnectionPool, runMigration, runSqlPool)
 import Database.Persist.Sqlite (createSqlitePool)
 import Network.Wai (Application)
 
-import LambdaChan.App (mkApp)
+import LambdaChan.App (mkApiApp)
 import LambdaChan.Auth (hashUserPassword, sessionDuration)
 import LambdaChan.Config (
   AppConfig (..),
@@ -57,7 +57,7 @@ withTestApp = do
     runSqlPool (runMigration migrateAll) p
     return p
   let env = AppEnv{dbPool = pool, appConfig = testConfig}
-  return (mkApp env)
+  return (mkApiApp env)
 
 -- | Insert an admin user; return (username, password).
 createTestAdmin :: ConnectionPool -> IO (Text, Text)

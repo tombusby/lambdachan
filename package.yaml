@@ -50,6 +50,7 @@ library:
     - cryptohash-sha256
     - base64-bytestring
     - http-types
+    - wai-app-static
 
 executables:
   lambdachan-exe:

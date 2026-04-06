@@ -228,3 +228,77 @@ PORT=3000 \
 TRIPCODE_SALT="$(openssl rand -hex 32)" \
 stack exec lambdachan-exe
 ```
+
+---
+
+## Frontend (Elm SPA)
+
+The Elm frontend lives in `frontend/`. It is a `Browser.application` SPA styled to mimic 4chan's classic aesthetic. The site name is **λchan** everywhere.
+
+### Module map
+
+```
+frontend/src/
+  Main.elm          Browser.application root — Model, Msg, update, view, routing
+  Route.elm         5 routes: BoardList | Catalog String | Thread String Int | Login | Admin
+  Types.elm         All shared Elm types mirroring API JSON shapes + decoders/encoders
+  Api.elm           All 16 API calls (Http.request), JSON decoders, httpErrorToString
+  Session.elm       port module — storeSession/onSessionChange ports + isAdmin/isMod helpers
+  Page/
+    BoardList.elm   GET /api/boards, renders board directory table
+    Catalog.elm     GET /api/boards/:board, thread cards with mod controls
+    Thread.elm      GET /api/boards/:board/threads/:id, full post list with reply form
+    Login.elm       POST /api/auth/login, session stored via port
+    Admin.elm       GET/POST /api/admin/users, user CRUD and mod board assignment
+  View/
+    Post.elm        Renders a single Post; view (full) and viewCompact (catalog preview)
+    PostForm.elm    Shared new-thread / reply form using elm/file for image upload
+    Image.elm       base64 image thumbnail and full-image rendering
+    Nav.elm         Top nav bar — board links, login/logout, admin link
+    Modal.elm       Delete confirmation modal overlay
+  style.css         4chan-inspired CSS — beige/tan background, coloured nav, green post boxes
+```
+
+### Key design decisions
+
+- **API base URL**: all `Http.request` calls use `/api` prefix (e.g. `/api/boards`)
+- **Dev proxy**: Vite proxies `/api/*` → `http://localhost:8080` (stripping the prefix), so the Haskell server needs no changes during dev
+- **Prod routing**: `mkApp` in `App.hs` splits requests at the WAI level — `"api" : rest` → Servant (prefix stripped); everything else → `wai-app-static` serving `frontend/dist/` with `index.html` fallback for SPA deep links
+- **Session**: stored as JSON in `localStorage` via the `storeSession` port; passed as a `Maybe String` flag on startup
+- **Image upload**: uses `elm/file` + `File.toUrl` to get a data URL, strips the `data:<mime>;base64,` prefix, sends `{ data, filename, mimeType }` in the JSON body
+- **No CSS framework**: hand-written `style.css` mimics 4chan's look — `#d6daf0` blue-grey for post boxes and headers, `#117743` green for author names
+
+### Env vars added
+
+| Variable | Default | Description |
+|---|---|---|
+| `STATIC_DIR` | `frontend/dist` | Directory to serve static frontend assets from |
+
+### Build and dev
+
+```bash
+# Install npm deps (first time only)
+make frontend-install
+
+# Build Elm → dist/
+make frontend-build
+
+# Dev: Vite on :5173 (HMR) + Haskell on :8080
+make dev
+
+# Or separately:
+stack exec lambdachan-exe        # Haskell API on :8080
+cd frontend && npm run dev        # Vite on :5173, proxies /api → :8080
+
+# Production: build frontend first, then run the server
+make frontend-build
+stack exec lambdachan-exe        # serves API + static files on :8080
+```
+
+### Adding a new page
+
+1. Create `frontend/src/Page/NewPage.elm` with `Model`, `Msg`, `init`, `update`, `view`
+2. Add a constructor to `Route` in `Route.elm` and `routeParser`
+3. Add `NewPageModel NewPage.Model` to `PageModel` in `Main.elm`
+4. Add `NewPageMsg NewPage.Msg` to `PageMsg` in `Main.elm`
+5. Handle the new route in `routeToPage` and the new msg in `updatePage`/`viewPage`

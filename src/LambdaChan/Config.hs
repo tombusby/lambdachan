@@ -31,15 +31,17 @@ data AppConfig = AppConfig
   { dbBackend     :: DatabaseBackend
   , serverPort    :: Int
   , poolSize      :: Int
-  , tripcodeSalt  :: Text  -- ^ Server-side salt for secure (##) tripcodes
+  , tripcodeSalt  :: Text        -- ^ Server-side salt for secure (##) tripcodes
+  , staticFilesDir :: Maybe FilePath -- ^ Path to compiled frontend assets (Nothing → "frontend/dist")
   } deriving (Show, Eq)
 
 defaultConfig :: AppConfig
 defaultConfig = AppConfig
-  { dbBackend    = SQLite "lambdachan.db"
-  , serverPort   = 8080
-  , poolSize     = 10
-  , tripcodeSalt = "changeme-in-production"
+  { dbBackend      = SQLite "lambdachan.db"
+  , serverPort     = 8080
+  , poolSize       = 10
+  , tripcodeSalt   = "changeme-in-production"
+  , staticFilesDir = Nothing
   }
 
 data AppEnv = AppEnv

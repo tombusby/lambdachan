@@ -8,9 +8,10 @@ import LambdaChan.Config (AppConfig (..), DatabaseBackend (..), defaultConfig)
 
 main :: IO ()
 main = do
-  mDbUrl <- lookupEnv "DATABASE_URL"
-  mPort <- lookupEnv "PORT"
-  mSalt <- lookupEnv "TRIPCODE_SALT"
+  mDbUrl     <- lookupEnv "DATABASE_URL"
+  mPort      <- lookupEnv "PORT"
+  mSalt      <- lookupEnv "TRIPCODE_SALT"
+  mStaticDir <- lookupEnv "STATIC_DIR"
 
   let backend = case mDbUrl of
         Just url
@@ -23,9 +24,10 @@ main = do
 
       cfg =
         defaultConfig
-          { dbBackend = backend
-          , serverPort = port
-          , tripcodeSalt = salt
+          { dbBackend      = backend
+          , serverPort     = port
+          , tripcodeSalt   = salt
+          , staticFilesDir = mStaticDir
           }
 
   runApp cfg
