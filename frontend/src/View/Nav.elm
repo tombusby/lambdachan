@@ -36,7 +36,7 @@ view { session, boards, notice, onLogout } =
 
 boardLink : Board -> Html msg
 boardLink board =
-    a [ href ("/b/" ++ board.name) ]
+    a [ href ("/" ++ board.name) ]
         [ text ("/" ++ board.name ++ "/") ]
 
 

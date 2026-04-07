@@ -206,7 +206,7 @@ view maybeSession model =
                 div []
                     [ div [ class "board-header" ]
                         [ h1 []
-                            [ a [ href ("/b/" ++ model.boardName) ]
+                            [ a [ href ("/" ++ model.boardName) ]
                                 [ text ("/" ++ model.boardName ++ "/") ]
                             , text (" — " ++ Maybe.withDefault "No subject" thread.subject)
                             ]

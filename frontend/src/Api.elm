@@ -4,6 +4,7 @@ module Api exposing
     , adminDeleteUser
     , adminListUsers
     , adminRevokeMod
+    , createBoard
     , createPost
     , createThread
     , deletePost
@@ -57,6 +58,26 @@ getBoard boardName toMsg =
     Http.get
         { url = apiBase ++ "/boards/" ++ boardName
         , expect = Http.expectJson toMsg boardCatalogDecoder
+        }
+
+
+createBoard : String -> String -> String -> Session -> (Result Http.Error Board -> msg) -> Cmd msg
+createBoard name title description session toMsg =
+    Http.request
+        { method = "POST"
+        , headers = authHeader (Just session)
+        , url = apiBase ++ "/boards"
+        , body =
+            Http.jsonBody
+                (E.object
+                    [ ( "name", E.string name )
+                    , ( "title", E.string title )
+                    , ( "description", E.string description )
+                    ]
+                )
+        , expect = Http.expectJson toMsg boardDecoder
+        , timeout = Nothing
+        , tracker = Nothing
         }
 
 

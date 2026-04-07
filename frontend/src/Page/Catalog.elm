@@ -15,6 +15,7 @@ import View.PostForm as PostForm
 type alias Model =
     { boardName : String
     , catalog : Maybe BoardCatalog
+    , notFound : Bool
     , error : Maybe String
     , showNewThread : Bool
     , postForm : PostForm.Model
@@ -43,6 +44,7 @@ init : String -> ( Model, Cmd Msg )
 init boardName =
     ( { boardName = boardName
       , catalog = Nothing
+      , notFound = False
       , error = Nothing
       , showNewThread = False
       , postForm = PostForm.init
@@ -58,6 +60,9 @@ update maybeSession msg model =
     case msg of
         GotCatalog (Ok catalog) ->
             ( { model | catalog = Just catalog, error = Nothing }, Cmd.none )
+
+        GotCatalog (Err (Http.BadStatus 404)) ->
+            ( { model | notFound = True }, Cmd.none )
 
         GotCatalog (Err err) ->
             ( { model | error = Just (Api.httpErrorToString err) }, Cmd.none )
@@ -147,7 +152,15 @@ view maybeSession model =
             Maybe.map Sess.isMod maybeSession |> Maybe.withDefault False
     in
     div [ class "catalog-page" ]
-        [ case model.catalog of
+        [ if model.notFound then
+            div [ class "not-found" ]
+                [ h1 [] [ text "404" ]
+                , p [] [ text ("There is no board /" ++ model.boardName ++ "/.") ]
+                , p [] [ a [ href "/" ] [ text "← Return to board list" ] ]
+                ]
+
+          else
+          case model.catalog of
             Nothing ->
                 div [ class "loading" ] [ text "Loading…" ]
 
@@ -200,7 +213,7 @@ threadCard : String -> Bool -> ThreadSummary -> Html Msg
 threadCard boardName canMod thread =
     div [ class "thread-card" ]
         [ div [ class "thread-card-header" ]
-            [ a [ href ("/b/" ++ boardName ++ "/" ++ String.fromInt thread.id) ]
+            [ a [ href ("/" ++ boardName ++ "/" ++ String.fromInt thread.id) ]
                 [ text
                     (case thread.subject of
                         Just s ->

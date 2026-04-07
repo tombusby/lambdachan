@@ -7,7 +7,9 @@
       "Bash(mkdir -p /Users/tombusby/Documents/projects/lambdachan/src/LambdaChan/API)",
       "Bash(mkdir -p /Users/tombusby/Documents/projects/lambdachan/test/LambdaChan)",
       "Bash(stack build:*)",
-      "Bash(stack test:*)"
+      "Bash(stack test:*)",
+      "Bash(elm make:*)",
+      "Bash(echo \"EXIT: $?\")"
     ]
   }
 }

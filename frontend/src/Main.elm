@@ -284,7 +284,11 @@ viewPage : Model -> Html Msg
 viewPage model =
     case model.page of
         NotFound ->
-            div [ class "not-found" ] [ text "404 — page not found" ]
+            div [ class "not-found" ]
+                [ h1 [] [ text "404" ]
+                , p [] [ text "This page does not exist." ]
+                , p [] [ a [ Html.Attributes.href "/" ] [ text "← Return to board list" ] ]
+                ]
 
         BoardListModel subModel ->
             Html.map (PageMsg << BoardListMsg) (BoardList.view model.session subModel)

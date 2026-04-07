@@ -25,10 +25,10 @@ parser : Parser (Route -> a) a
 parser =
     Parser.oneOf
         [ Parser.map BoardList top
-        , Parser.map Catalog (s "b" </> string)
-        , Parser.map Thread (s "b" </> string </> int)
         , Parser.map Login (s "login")
         , Parser.map Admin (s "admin")
+        , Parser.map Thread (string </> int)
+        , Parser.map Catalog string
         ]
 
 
@@ -44,10 +44,10 @@ toString route =
             "/"
 
         Catalog board ->
-            "/b/" ++ board
+            "/" ++ board
 
         Thread board threadId ->
-            "/b/" ++ board ++ "/" ++ String.fromInt threadId
+            "/" ++ board ++ "/" ++ String.fromInt threadId
 
         Login ->
             "/login"

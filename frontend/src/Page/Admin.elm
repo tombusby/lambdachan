@@ -6,12 +6,16 @@ import Html.Attributes exposing (class, disabled, placeholder, selected, type_, 
 import Html.Events exposing (on, onClick, onInput, onSubmit, targetValue)
 import Http
 import Json.Decode
-import Types exposing (Session, User, UserRole(..))
+import Types exposing (Board, Session, User, UserRole(..))
 
 
 type alias Model =
     { users : List User
     , error : Maybe String
+    , newBoardName : String
+    , newBoardTitle : String
+    , newBoardDescription : String
+    , boardSubmitting : Bool
     , newUsername : String
     , newPassword : String
     , newRole : UserRole
@@ -24,6 +28,11 @@ type alias Model =
 
 type Msg
     = GotUsers (Result Http.Error (List User))
+    | SetNewBoardName String
+    | SetNewBoardTitle String
+    | SetNewBoardDescription String
+    | SubmitCreateBoard
+    | BoardCreated (Result Http.Error Board)
     | SetNewUsername String
     | SetNewPassword String
     | SetNewRole UserRole
@@ -45,6 +54,10 @@ init : Session -> ( Model, Cmd Msg )
 init session =
     ( { users = []
       , error = Nothing
+      , newBoardName = ""
+      , newBoardTitle = ""
+      , newBoardDescription = ""
+      , boardSubmitting = False
       , newUsername = ""
       , newPassword = ""
       , newRole = ModeratorRole
@@ -65,6 +78,33 @@ update session msg model =
 
         GotUsers (Err err) ->
             ( { model | error = Just (Api.httpErrorToString err) }, Cmd.none )
+
+        SetNewBoardName s ->
+            ( { model | newBoardName = s }, Cmd.none )
+
+        SetNewBoardTitle s ->
+            ( { model | newBoardTitle = s }, Cmd.none )
+
+        SetNewBoardDescription s ->
+            ( { model | newBoardDescription = s }, Cmd.none )
+
+        SubmitCreateBoard ->
+            ( { model | boardSubmitting = True }
+            , Api.createBoard model.newBoardName model.newBoardTitle model.newBoardDescription session BoardCreated
+            )
+
+        BoardCreated (Ok _) ->
+            ( { model
+                | boardSubmitting = False
+                , newBoardName = ""
+                , newBoardTitle = ""
+                , newBoardDescription = ""
+              }
+            , Cmd.none
+            )
+
+        BoardCreated (Err err) ->
+            ( { model | boardSubmitting = False, error = Just (Api.httpErrorToString err) }, Cmd.none )
 
         SetNewUsername s ->
             ( { model | newUsername = s }, Cmd.none )
@@ -158,6 +198,66 @@ view model =
 
             Nothing ->
                 text ""
+        , h3 [] [ text "Create board" ]
+        , Html.form [ onSubmit SubmitCreateBoard, class "create-board-form" ]
+            [ table [ class "post-form-table" ]
+                [ tbody []
+                    [ tr []
+                        [ td [] [ label [] [ text "Name" ] ]
+                        , td []
+                            [ input
+                                [ type_ "text"
+                                , value model.newBoardName
+                                , onInput SetNewBoardName
+                                , placeholder "e.g. g"
+                                ]
+                                []
+                            ]
+                        ]
+                    , tr []
+                        [ td [] [ label [] [ text "Title" ] ]
+                        , td []
+                            [ input
+                                [ type_ "text"
+                                , value model.newBoardTitle
+                                , onInput SetNewBoardTitle
+                                , placeholder "e.g. Technology"
+                                ]
+                                []
+                            ]
+                        ]
+                    , tr []
+                        [ td [] [ label [] [ text "Description" ] ]
+                        , td []
+                            [ input
+                                [ type_ "text"
+                                , value model.newBoardDescription
+                                , onInput SetNewBoardDescription
+                                , placeholder "e.g. Technology discussion"
+                                ]
+                                []
+                            ]
+                        ]
+                    , tr []
+                        [ td [] []
+                        , td []
+                            [ button
+                                [ type_ "submit"
+                                , disabled model.boardSubmitting
+                                ]
+                                [ text
+                                    (if model.boardSubmitting then
+                                        "Creating…"
+
+                                     else
+                                        "Create"
+                                    )
+                                ]
+                            ]
+                        ]
+                    ]
+                ]
+            ]
         , h3 [] [ text "Users" ]
         , table [ class "user-table" ]
             [ thead []
