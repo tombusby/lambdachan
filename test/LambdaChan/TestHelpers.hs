@@ -17,7 +17,7 @@ import Data.Time (addUTCTime, getCurrentTime)
 import Data.UUID (toText)
 import Data.UUID.V4 (nextRandom)
 import Database.Persist (Entity (..))
-import Database.Persist.Sql (ConnectionPool, runMigration, runSqlPool)
+import Database.Persist.Sql (ConnectionPool, runMigrationSilent, runSqlPool)
 import Database.Persist.Sqlite (createSqlitePool)
 import Network.Wai (Application)
 
@@ -45,7 +45,7 @@ withTestPool :: (ConnectionPool -> IO a) -> IO a
 withTestPool action = do
   pool <- runNoLoggingT $ do
     p <- createSqlitePool ":memory:" 1
-    runSqlPool (runMigration migrateAll) p
+    _ <- runSqlPool (runMigrationSilent migrateAll) p
     return p
   action pool
 
@@ -54,7 +54,7 @@ withTestApp :: IO Application
 withTestApp = do
   pool <- runNoLoggingT $ do
     p <- createSqlitePool ":memory:" 1
-    runSqlPool (runMigration migrateAll) p
+    _ <- runSqlPool (runMigrationSilent migrateAll) p
     return p
   let env = AppEnv{dbPool = pool, appConfig = testConfig}
   return (mkApiApp env)
