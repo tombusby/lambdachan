@@ -1,7 +1,7 @@
 module View.Modal exposing (view)
 
 import Html exposing (..)
-import Html.Attributes exposing (class, style)
+import Html.Attributes exposing (class)
 import Html.Events exposing (onClick)
 
 

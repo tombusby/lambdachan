@@ -2,7 +2,7 @@ module Page.BoardList exposing (Model, Msg, init, update, view)
 
 import Api
 import Html exposing (..)
-import Html.Attributes exposing (class, href)
+import Html.Attributes exposing (class)
 import Http
 import Route
 import Types exposing (Board, Session)

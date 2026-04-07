@@ -6,8 +6,6 @@ import Html.Attributes exposing (class, href)
 import Html.Events exposing (onClick)
 import Http
 import Session as Sess
-import Task
-import Time exposing (Zone)
 import Types exposing (BoardCatalog, Session, ThreadSummary)
 import View.Modal as Modal
 import View.Post as Post
@@ -18,7 +16,6 @@ type alias Model =
     { boardName : String
     , catalog : Maybe BoardCatalog
     , error : Maybe String
-    , zone : Zone
     , showNewThread : Bool
     , postForm : PostForm.Model
     , submitting : Bool
@@ -28,7 +25,6 @@ type alias Model =
 
 type Msg
     = GotCatalog (Result Http.Error BoardCatalog)
-    | GotZone Zone
     | ToggleNewThread
     | FormMsg PostForm.Msg
     | SubmitThread
@@ -48,16 +44,12 @@ init boardName =
     ( { boardName = boardName
       , catalog = Nothing
       , error = Nothing
-      , zone = Time.utc
       , showNewThread = False
       , postForm = PostForm.init
       , submitting = False
       , deleteTarget = Nothing
       }
-    , Cmd.batch
-        [ Api.getBoard boardName GotCatalog
-        , Task.perform GotZone Time.here
-        ]
+    , Api.getBoard boardName GotCatalog
     )
 
 
@@ -69,9 +61,6 @@ update maybeSession msg model =
 
         GotCatalog (Err err) ->
             ( { model | error = Just (Api.httpErrorToString err) }, Cmd.none )
-
-        GotZone zone ->
-            ( { model | zone = zone }, Cmd.none )
 
         ToggleNewThread ->
             ( { model | showNewThread = not model.showNewThread }, Cmd.none )
@@ -196,7 +185,7 @@ view maybeSession model =
                         Nothing ->
                             text ""
                     , div [ class "thread-list" ]
-                        (List.map (threadCard catalog.board.name canMod model.zone) catalog.threads)
+                        (List.map (threadCard catalog.board.name canMod) catalog.threads)
                     ]
         , Modal.view
             { visible = model.deleteTarget /= Nothing
@@ -207,8 +196,8 @@ view maybeSession model =
         ]
 
 
-threadCard : String -> Bool -> Zone -> ThreadSummary -> Html Msg
-threadCard boardName canMod zone thread =
+threadCard : String -> Bool -> ThreadSummary -> Html Msg
+threadCard boardName canMod thread =
     div [ class "thread-card" ]
         [ div [ class "thread-card-header" ]
             [ a [ href ("/b/" ++ boardName ++ "/" ++ String.fromInt thread.id) ]
@@ -247,5 +236,5 @@ threadCard boardName canMod zone thread =
               else
                 text ""
             ]
-        , Post.viewCompact { post = thread.opPost, zone = zone }
+        , Post.viewCompact { post = thread.opPost }
         ]

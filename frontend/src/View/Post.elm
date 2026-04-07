@@ -60,10 +60,9 @@ view { post, zone, modActions } =
 -- | Compact OP preview (used in catalog).
 viewCompact :
     { post : Post
-    , zone : Zone
     }
     -> Html msg
-viewCompact { post, zone } =
+viewCompact { post } =
     div [ class "post post-compact" ]
         [ case post.imageData of
             Just b64 ->

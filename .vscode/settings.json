@@ -2,18 +2,24 @@
   "cSpell.words": [
     "adminpass",
     "changeme",
+    "colored",
     "lambdachan",
     "libpq",
     "lreq",
     "lres",
     "modpass",
     "nonexistent",
+    "sess",
     "somepassword",
     "stickies",
+    "stylesheet",
     "testadmin",
     "testmod",
     "tripcode",
     "Tripcodes",
-    "Unlift"
-  ]
+    "Unlift",
+    "Unsticky",
+    "λchan"
+  ],
+  "makefile.configureOnOpen": false
 }
