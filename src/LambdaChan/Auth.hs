@@ -15,7 +15,6 @@ module LambdaChan.Auth (
   sessionDuration,
 
   -- * Request auth helpers
-  validateSessionToken,
   requireAuth,
   requireAdmin,
   requireModOrAdmin,

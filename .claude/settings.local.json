@@ -9,7 +9,8 @@
       "Bash(stack build:*)",
       "Bash(stack test:*)",
       "Bash(elm make:*)",
-      "Bash(echo \"EXIT: $?\")"
+      "Bash(echo \"EXIT: $?\")",
+      "Bash(grep -E \"testConfig|createTestAdmin|createTestMod|loginAs|bearerHeader\" test/LambdaChan/*.hs)"
     ]
   }
 }

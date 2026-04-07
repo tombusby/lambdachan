@@ -4,7 +4,6 @@
 
 module LambdaChan.Types (
   UserRole (..),
-  AppError (..),
   AuthUser (..),
 ) where
 
@@ -39,10 +38,3 @@ data AuthUser = AuthUser
   }
   deriving (Show, Eq)
 
-data AppError
-  = AppNotFound Text
-  | AppUnauthorized
-  | AppForbidden Text
-  | AppBadRequest Text
-  | AppInternalError Text
-  deriving (Show, Eq)
