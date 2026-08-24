@@ -6,7 +6,7 @@ This file gives Claude the context needed to work on lambdachan without a prior 
 
 ## What this project is
 
-A 4chan-style imageboard REST API. Key behavioural requirements:
+A 4chan-style imageboard REST API with an Elm SPA frontend. Key behavioural requirements:
 
 - Anonymous posting (no account required to post or create threads)
 - Tripcodes (`Name#pass` standard, `Name##pass` server-salted secure)
@@ -29,105 +29,48 @@ A 4chan-style imageboard REST API. Key behavioural requirements:
 | Session tokens | `uuid` (v4 random UUIDs stored in DB) |
 | Tripcodes | `cryptohash-sha256` + `base64-bytestring` |
 | Tests | `hspec` + `hspec-wai` + `QuickCheck` |
+| Frontend | Elm (`Browser.application`), Vite dev server |
 | GHC / LTS | 9.10.3 / LTS 24.36 |
 
 ---
 
 ## Module map
 
-```
-src/LambdaChan/
-  Types.hs            UserRole (AdminRole|ModeratorRole), AuthUser, AppError
-                      UserRole has ToJSON/FromJSON ("admin"/"moderator")
-                      AuthUser carries Int64 IDs (not DB Key types) to avoid circular deps
+Backend modules under `src/LambdaChan/`. Only the non-obvious contents are noted —
+read the module for the full export list.
 
-  Config.hs           DatabaseBackend (SQLite FilePath | PostgreSQL Text)
-                      AppConfig (dbBackend, serverPort, poolSize, tripcodeSalt)
-                      AppEnv (dbPool :: ConnectionPool, appConfig :: AppConfig)
-                      App = ReaderT AppEnv Handler
-                      runDB :: SqlPersistT IO a -> App a   ← the key helper
-                      throwNotFound / throwBadRequest / throwForbidden
+- **`Types.hs`** — `UserRole`, `AuthUser`, `AppError`. `AuthUser` carries `Int64` IDs
+  rather than DB `Key` types, deliberately, to avoid a circular dependency on Schema.
+- **`Config.hs`** — `DatabaseBackend`, `AppConfig`, `AppEnv`, and `App = ReaderT AppEnv Handler`.
+  Home of `runDB` (see gotchas) and the `throwNotFound` / `throwBadRequest` / `throwForbidden` helpers.
+- **`Database/Schema.hs`** — the `persistLowerCase` block. Entities: Board, User,
+  ModeratorBoard, Thread, Post, Session. Generates `migrateAll` plus all `EntityField`
+  and `Unique` constructors. **Exports `Post`, which clashes with `Servant.Post`** — see gotchas.
+- **`Database/Queries.hs`** — pure `SqlPersistT IO` functions, no `App` monad. One
+  function per operation; names are predictable (`getBoardByName`, `softDeletePost`, …).
+- **`Auth.hs`** — tripcode computation (`computeTripcode` `!`-prefixed, 10 base64 chars;
+  `computeSecureTripcode` `!!`-prefixed), password hashing, session tokens
+  (`sessionDuration` = 7 days), and the `requireAuth` / `requireAdmin` / `requireModOrAdmin`
+  guards. All three guards take the **raw `Authorization` header value** as `Maybe Text`.
+  `parseAuthorName` takes the server salt first, the raw author field second.
+- **`API/Types.hs`** — the `LambdaChanAPI` Servant type and all JSON types, with manual
+  `ToJSON`/`FromJSON` instances (no Generic deriving — avoids field-prefix issues and the
+  `Post` clash). Imports Schema qualified as `DB`.
+- **`API/Handlers.hs`** — `appServer`. Imports `Servant hiding (Post)`. `bumpLimit = 300`.
+- **`App.hs`** — `mkApp`, `initialisePool`, `runMigrations`, `seedDatabase` (creates
+  `admin`/`changeme` if the DB has no users), `runApp`.
+- **`app/Main.hs`** — reads `DATABASE_URL` / `PORT` / `TRIPCODE_SALT`, calls `runApp`.
 
-  Database/
-    Schema.hs         derivePersistField "UserRole"  ← stored as "AdminRole"/"ModeratorRole"
-                      Entities: Board, User, ModeratorBoard, Thread, Post, Session
-                      Generates: migrateAll, all EntityField constructors, all Unique constructors
-                      NOTE: exports Post (DB entity) which clashes with Servant.Post (HTTP verb)
-                            → always import this module qualified or hide Post
+### The API type
 
-    Queries.hs        Pure SqlPersistT IO functions — no App monad here
-                      Covers: listBoards, getBoardByName, createBoard, hardDeleteBoard,
-                              getThreadsByBoard, getThread, createThread, softDeleteThread,
-                              setThreadSticky, setThreadLocked, bumpThread,
-                              getPostsByThread, getPost, getOpPost, createPost, softDeletePost,
-                              getPostCount, listUsers, getUserByUsername, createUser, hardDeleteUser,
-                              getUserModBoardIds, assignModToBoard, removeModFromBoard,
-                              createSession, deleteSession, getSessionUser
+`LambdaChanAPI` in `API/Types.hs` is the contract; read it there rather than a copy
+that will drift. The rule that matters:
 
-  Auth.hs             computeTripcode :: ByteString -> Text  (! prefix, 10 base64 chars)
-                      computeSecureTripcode :: Text -> ByteString -> Text  (!! prefix)
-                      parseAuthorName :: Text -> Text -> (Text, Maybe Text)
-                        first arg = server salt (from appConfig), second = raw author field
-                      hashUserPassword :: Text -> IO Text
-                      verifyUserPassword :: Text -> Text -> Bool
-                      generateSessionToken :: IO Text
-                      sessionDuration :: NominalDiffTime  (7 days)
-                      requireAuth / requireAdmin / requireModOrAdmin :: Maybe Text -> App AuthUser
-                        all take the raw Authorization header value (Maybe Text)
+> **Handler order in `appServer` must match the endpoint order in `LambdaChanAPI` exactly**,
+> or the Servant type system rejects it — usually with an error that points at the wrong line.
 
-  API/
-    Types.hs          LambdaChanAPI — the full 18-endpoint Servant type (see below)
-                      lambdaChanAPI :: Proxy LambdaChanAPI
-                      All request/response JSON types with manual ToJSON/FromJSON instances
-                      boardToResponse :: Entity DB.Board -> BoardResponse
-                      postToResponse  :: Entity DB.Post  -> PostResponse
-                      IMPORTANT: imports Schema as `qualified ... as DB` to avoid Post clash
-
-    Handlers.hs       appServer :: ServerT LambdaChanAPI App
-                        — 18 handlers in exact order matching LambdaChanAPI
-                      imports Servant with `hiding (Post)` to avoid clash with DB Post entity
-                      bumpLimit = 300
-
-  App.hs              mkApp :: AppEnv -> Application
-                      initialisePool :: AppConfig -> IO ConnectionPool
-                      runMigrations :: ConnectionPool -> IO ()
-                      seedDatabase :: AppConfig -> ConnectionPool -> IO ()
-                        — creates "admin"/"changeme" user if DB has no users; logs to stderr
-                      runApp :: AppConfig -> IO ()
-
-Lib.hs                re-exports runApp, defaultConfig, AppConfig, DatabaseBackend
-
-app/Main.hs           reads DATABASE_URL / PORT / TRIPCODE_SALT env vars, calls runApp
-```
-
----
-
-## The API type (18 endpoints in order)
-
-The handler order in `appServer` must match this type exactly or the Servant type system will reject it.
-
-```
-1.  GET    /boards                                          → [BoardResponse]
-2.  POST   /boards                         [admin]          → BoardResponse
-3.  GET    /boards/:board                                   → BoardCatalogResponse
-4.  DELETE /boards/:board                  [admin]          → NoContent
-5.  POST   /boards/:board/threads                           → ThreadResponse
-6.  GET    /boards/:board/threads/:id                       → ThreadDetailResponse
-7.  DELETE /boards/:board/threads/:id      [mod/admin]      → NoContent
-8.  PATCH  /boards/:board/threads/:id/sticky [mod/admin]   → NoContent
-9.  PATCH  /boards/:board/threads/:id/lock   [mod/admin]   → NoContent
-10. POST   /boards/:board/threads/:id/posts                 → PostResponse
-11. DELETE /boards/:board/threads/:id/posts/:pid [mod/admin] → NoContent
-12. POST   /auth/login                                      → LoginResponse
-13. POST   /auth/logout                    [bearer]         → NoContent
-14. GET    /admin/users                    [admin]          → [UserResponse]
-15. POST   /admin/users                    [admin]          → UserResponse
-16. DELETE /admin/users/:id               [admin]          → NoContent
-17. POST   /admin/users/:id/boards/:board [admin]          → NoContent
-18. DELETE /admin/users/:id/boards/:board [admin]          → NoContent
-```
-
-Protected endpoints receive `Maybe Text` as the auth argument (the raw `Authorization` header). Call `requireAuth`, `requireAdmin`, or `requireModOrAdmin` to enforce access.
+Protected endpoints receive the raw `Authorization` header as `Maybe Text`; enforce access
+by calling one of the `require*` guards.
 
 ---
 
@@ -211,7 +154,34 @@ Run tests with `stack test`. Run a subset with `stack test --test-arguments "-m 
 3. Migrations are automatic on startup
 
 ### New JSON type
-Follow the existing manual `ToJSON`/`FromJSON` pattern (no Generic deriving used — avoids issues with field name prefixes and the `Post` clash).
+Follow the existing manual `ToJSON`/`FromJSON` pattern.
+
+### New frontend page
+1. Create `frontend/src/Page/NewPage.elm` with `Model`, `Msg`, `init`, `update`, `view`
+2. Add a constructor to `Route` in `Route.elm` and `routeParser`
+3. Add `NewPageModel NewPage.Model` to `PageModel` in `Main.elm`
+4. Add `NewPageMsg NewPage.Msg` to `PageMsg` in `Main.elm`
+5. Handle the new route in `routeToPage` and the new msg in `updatePage`/`viewPage`
+
+---
+
+## Frontend (Elm SPA)
+
+`frontend/src/` — a `Browser.application` SPA styled to mimic 4chan's classic aesthetic.
+The site name is **λchan** everywhere. `Main.elm` holds the root Model/Msg/update/view,
+`Route.elm` the routes, `Types.elm` the API-mirroring types and decoders, `Api.elm` every
+HTTP call, and `Page/` and `View/` the page and component modules.
+
+The non-obvious decisions:
+
+- **API base URL**: all `Http.request` calls use an `/api` prefix (e.g. `/api/boards`)
+- **Dev proxy**: Vite proxies `/api/*` → `http://localhost:8080` (stripping the prefix), so the Haskell server needs no changes during dev
+- **Prod routing**: `mkApp` in `App.hs` splits requests at the WAI level — `"api" : rest` → Servant (prefix stripped); everything else → `wai-app-static` serving `frontend/dist/` with `index.html` fallback for SPA deep links
+- **Session**: stored as JSON in `localStorage` via the `storeSession` port; passed as a `Maybe String` flag on startup
+- **Image upload**: uses `elm/file` + `File.toUrl` to get a data URL, strips the `data:<mime>;base64,` prefix, sends `{ data, filename, mimeType }` in the JSON body
+- **No CSS framework**: hand-written `style.css` — `#d6daf0` blue-grey for post boxes and headers, `#117743` green for author names
+
+`STATIC_DIR` (default `frontend/dist`) sets where static assets are served from.
 
 ---
 
@@ -227,78 +197,9 @@ DATABASE_URL="host=localhost dbname=lambdachan user=app password=x" \
 PORT=3000 \
 TRIPCODE_SALT="$(openssl rand -hex 32)" \
 stack exec lambdachan-exe
+
+# Frontend
+make frontend-install   # first time only
+make frontend-build     # Elm → dist/
+make dev                # Vite on :5173 (HMR) + Haskell on :8080
 ```
-
----
-
-## Frontend (Elm SPA)
-
-The Elm frontend lives in `frontend/`. It is a `Browser.application` SPA styled to mimic 4chan's classic aesthetic. The site name is **λchan** everywhere.
-
-### Module map
-
-```
-frontend/src/
-  Main.elm          Browser.application root — Model, Msg, update, view, routing
-  Route.elm         5 routes: BoardList | Catalog String | Thread String Int | Login | Admin
-  Types.elm         All shared Elm types mirroring API JSON shapes + decoders/encoders
-  Api.elm           All 16 API calls (Http.request), JSON decoders, httpErrorToString
-  Session.elm       port module — storeSession/onSessionChange ports + isAdmin/isMod helpers
-  Page/
-    BoardList.elm   GET /api/boards, renders board directory table
-    Catalog.elm     GET /api/boards/:board, thread cards with mod controls
-    Thread.elm      GET /api/boards/:board/threads/:id, full post list with reply form
-    Login.elm       POST /api/auth/login, session stored via port
-    Admin.elm       GET/POST /api/admin/users, user CRUD and mod board assignment
-  View/
-    Post.elm        Renders a single Post; view (full) and viewCompact (catalog preview)
-    PostForm.elm    Shared new-thread / reply form using elm/file for image upload
-    Image.elm       base64 image thumbnail and full-image rendering
-    Nav.elm         Top nav bar — board links, login/logout, admin link
-    Modal.elm       Delete confirmation modal overlay
-  style.css         4chan-inspired CSS — beige/tan background, coloured nav, green post boxes
-```
-
-### Key design decisions
-
-- **API base URL**: all `Http.request` calls use `/api` prefix (e.g. `/api/boards`)
-- **Dev proxy**: Vite proxies `/api/*` → `http://localhost:8080` (stripping the prefix), so the Haskell server needs no changes during dev
-- **Prod routing**: `mkApp` in `App.hs` splits requests at the WAI level — `"api" : rest` → Servant (prefix stripped); everything else → `wai-app-static` serving `frontend/dist/` with `index.html` fallback for SPA deep links
-- **Session**: stored as JSON in `localStorage` via the `storeSession` port; passed as a `Maybe String` flag on startup
-- **Image upload**: uses `elm/file` + `File.toUrl` to get a data URL, strips the `data:<mime>;base64,` prefix, sends `{ data, filename, mimeType }` in the JSON body
-- **No CSS framework**: hand-written `style.css` mimics 4chan's look — `#d6daf0` blue-grey for post boxes and headers, `#117743` green for author names
-
-### Env vars added
-
-| Variable | Default | Description |
-|---|---|---|
-| `STATIC_DIR` | `frontend/dist` | Directory to serve static frontend assets from |
-
-### Build and dev
-
-```bash
-# Install npm deps (first time only)
-make frontend-install
-
-# Build Elm → dist/
-make frontend-build
-
-# Dev: Vite on :5173 (HMR) + Haskell on :8080
-make dev
-
-# Or separately:
-stack exec lambdachan-exe        # Haskell API on :8080
-cd frontend && npm run dev        # Vite on :5173, proxies /api → :8080
-
-# Production: build frontend first, then run the server
-make frontend-build
-stack exec lambdachan-exe        # serves API + static files on :8080
-```
-
-### Adding a new page
-
-1. Create `frontend/src/Page/NewPage.elm` with `Model`, `Msg`, `init`, `update`, `view`
-2. Add a constructor to `Route` in `Route.elm` and `routeParser`
-3. Add `NewPageModel NewPage.Model` to `PageModel` in `Main.elm`
-4. Add `NewPageMsg NewPage.Msg` to `PageMsg` in `Main.elm`
-5. Handle the new route in `routeToPage` and the new msg in `updatePage`/`viewPage`
